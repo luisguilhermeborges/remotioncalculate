@@ -358,7 +358,7 @@ function renderItems(searchTerm = '') {
         card.style.cursor = 'pointer';
         card.setAttribute('title', 'Adicionar ao carrinho');
         card.innerHTML = `
-            ${stageText ? `<div class="item-stage" style="top: 8px; right: 8px;">Stage ${item.stage}</div>` : ''}
+            ${stageText ? `<div class="item-stage">Stage ${item.stage}</div>` : ''}
             <div class="quick-service-header">
                 <div class="quick-service-icon">
                     ${getItemIconHtml(item)}
