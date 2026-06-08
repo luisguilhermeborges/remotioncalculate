@@ -1,0 +1,12 @@
+# Backups
+backup_old/
+
+# IDEs and OS files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Dependencies (if any)
+node_modules/
+npm-debug.log*

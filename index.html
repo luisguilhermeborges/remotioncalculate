@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RE:Motion Performance Shop — Calculadora</title>
+    <meta name="description" content="Calculadora de peças, serviços e produtos da RE:Motion Performance Shop.">
+    <link rel="stylesheet" href="style.css?v=8">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Outfit:wght@300;400;500;600;700;800&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+
+<body>
+    <div class="app-container">
+
+        <!-- ═══ SIDEBAR ═══ -->
+        <aside class="sidebar">
+            <div class="brand">
+                <div class="brand-logo">
+                    <span class="brand-re">RE</span>
+                    <span class="brand-colon">:</span>
+                    <span class="brand-motion">Motion</span>
+                </div>
+                <div class="brand-tagline">Performance Shop</div>
+            </div>
+
+            <div>
+                <div class="nav-label"></div>
+                <nav class="categories">
+                    <button class="category-btn active" id="btn-home" data-category="home">
+                        <i class="fa-solid fa-house"></i> Início
+                    </button>
+                    <button class="category-btn" id="btn-components" data-category="components">
+                        <i class="fa-solid fa-cogs"></i> Stages
+                    </button>
+                    <button class="category-btn" id="btn-services" data-category="services">
+                        <i class="fa-solid fa-screwdriver-wrench"></i> Serviços
+                    </button>
+                    <button class="category-btn" id="btn-products" data-category="products">
+                        <i class="fa-solid fa-box"></i> Produtos
+                    </button>
+                </nav>
+            </div>
+
+            <div class="sidebar-footer">
+                <i class="fa-solid fa-circle-dot fa-xs"></i>
+                <span>Sistema Interno v2.0</span>
+            </div>
+        </aside>
+
+        <!-- ═══ MAIN CONTENT ═══ -->
+        <main class="main-content">
+            <header class="top-header">
+                <div class="header-left">
+                    <h2 id="categoryTitle">Início</h2>
+                    <p id="categorySubtitle">Painel de controle e serviços rápidos</p>
+                </div>
+                <div class="search-bar" style="display: none;">
+                    <i class="fa-solid fa-magnifying-glass"></i>
+                    <input type="text" id="searchInput" placeholder="Buscar item...">
+                </div>
+            </header>
+
+            <!-- Stage bundle buttons — só aparece em Stages -->
+            <div id="stageButtonsContainer" class="stage-buttons-row"></div>
+
+            <div class="items-scroll">
+                <div class="items-grid" id="itemsGrid" style="display: none;">
+                    <!-- Items injected via JS -->
+                </div>
+                <div id="homeContainer" class="home-container">
+                    <!-- Home dashboard widgets injected here -->
+                </div>
+            </div>
+        </main>
+
+        <!-- ═══ CART PANEL ═══ -->
+        <aside class="cart-panel">
+            <header class="cart-header">
+                <h3>
+                    <i class="fa-solid fa-cart-shopping"></i>
+                    Carrinho
+                    <span class="cart-count-badge" id="cartBadge">0</span>
+                </h3>
+                <button id="clearCartBtn" class="action-btn danger-btn">
+                    <i class="fa-solid fa-trash"></i> Limpar
+                </button>
+            </header>
+
+            <div class="cart-items" id="cartItems">
+                <div class="empty-cart-msg">
+                    <i class="fa-solid fa-cart-shopping"></i>
+                    <p>Nenhum item selecionado</p>
+                </div>
+            </div>
+
+            <div class="cart-summary">
+                <div class="summary-section">
+                    <h4>Materiais Necessários</h4>
+                    <div class="materials-list" id="materialsList">
+                        <span class="text-muted">Selecione itens para ver</span>
+                    </div>
+                </div>
+
+                <div class="total-section">
+                    <div class="total-row">
+                        <span>Custo de Materiais</span>
+                        <span id="costTotal">$0</span>
+                    </div>
+                    <div class="total-row highlight">
+                        <span>Lucro Bruto</span>
+                        <span id="sellTotal">$0</span>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+    </div>
+
+    <!-- Botão de Carrinho Flutuante para Mobile -->
+    <button id="floatingCartBtn" class="floating-cart-btn" style="display: none;">
+        <i class="fa-solid fa-cart-shopping"></i>
+        <span class="cart-count-badge" id="floatingCartBadge">0</span>
+    </button>
+
+    <script src="data.js?v=8"></script>
+    <script src="app.js?v=8"></script>
+</body>
+
+</html>
