@@ -159,12 +159,31 @@ const db = {
 
     // Get connection info
     getConnectionInfo: () => getSupabaseConfig(),
-
     // --- MATERIALS ---
     getMaterials: async () => {
         if (supabaseInstance) {
             const { data, error } = await supabaseInstance.from('materials').select('*');
-            if (!error && data && data.length > 0) return data;
+            if (!error && data) {
+                // Auto-seed missing default materials
+                const existingIds = new Set(data.map(m => m.id));
+                const missingMaterials = [];
+                if (typeof materials !== 'undefined') {
+                    materials.forEach(m => {
+                        if (!existingIds.has(m.id)) {
+                            missingMaterials.push(m);
+                        }
+                    });
+                }
+                if (missingMaterials.length > 0) {
+                    console.log(`Auto-seeding ${missingMaterials.length} missing default materials to Supabase...`);
+                    for (const mat of missingMaterials) {
+                        await supabaseInstance.from('materials').upsert(mat);
+                    }
+                    const { data: refreshedData } = await supabaseInstance.from('materials').select('*');
+                    if (refreshedData) return refreshedData;
+                }
+                return data;
+            }
             console.warn("Supabase materials empty or errored. Falling back to local storage.", error);
         }
         return JSON.parse(safeStorage.getItem('materials_local') || '[]');
@@ -185,32 +204,81 @@ const db = {
         return true;
     },
 
+    processItemsData: (data) => {
+        const components = data.filter(i => i.category === 'components').map(i => ({
+            id: i.id,
+            name: i.name,
+            stage: i.stage,
+            sellPrice: Number(i.sell_price),
+            ingredients: typeof i.ingredients === 'string' ? JSON.parse(i.ingredients) : i.ingredients
+        }));
+        const services = data.filter(i => i.category === 'services').map(i => ({
+            id: i.id,
+            name: i.name,
+            price: Number(i.price),
+            ingredients: typeof i.ingredients === 'string' ? JSON.parse(i.ingredients) : i.ingredients
+        }));
+        const products = data.filter(i => i.category === 'products').map(i => ({
+            id: i.id,
+            name: i.name,
+            sellPrice: Number(i.sell_price),
+            ingredients: typeof i.ingredients === 'string' ? JSON.parse(i.ingredients) : i.ingredients
+        }));
+        return { components, services, products };
+    },
+
     // --- ITEMS (components, services, products) ---
     getItems: async () => {
         if (supabaseInstance) {
             const { data, error } = await supabaseInstance.from('items').select('*');
-            if (!error && data && data.length > 0) {
-                // Map DB schema to UI arrays
-                const components = data.filter(i => i.category === 'components').map(i => ({
-                    id: i.id,
-                    name: i.name,
-                    stage: i.stage,
-                    sellPrice: Number(i.sell_price),
-                    ingredients: typeof i.ingredients === 'string' ? JSON.parse(i.ingredients) : i.ingredients
-                }));
-                const services = data.filter(i => i.category === 'services').map(i => ({
-                    id: i.id,
-                    name: i.name,
-                    price: Number(i.price),
-                    ingredients: typeof i.ingredients === 'string' ? JSON.parse(i.ingredients) : i.ingredients
-                }));
-                const products = data.filter(i => i.category === 'products').map(i => ({
-                    id: i.id,
-                    name: i.name,
-                    sellPrice: Number(i.sell_price),
-                    ingredients: typeof i.ingredients === 'string' ? JSON.parse(i.ingredients) : i.ingredients
-                }));
-                return { components, services, products };
+            if (!error && data) {
+                // Check if any default items are missing in Supabase
+                const existingIds = new Set(data.map(i => i.id));
+                const missingItems = [];
+
+                if (typeof components !== 'undefined') {
+                    components.forEach(item => {
+                        if (!existingIds.has(item.id)) {
+                            missingItems.push({ item, category: 'components' });
+                        }
+                    });
+                }
+                if (typeof services !== 'undefined') {
+                    services.forEach(item => {
+                        if (!existingIds.has(item.id)) {
+                            missingItems.push({ item, category: 'services' });
+                        }
+                    });
+                }
+                if (typeof products !== 'undefined') {
+                    products.forEach(item => {
+                        if (!existingIds.has(item.id)) {
+                            missingItems.push({ item, category: 'products' });
+                        }
+                    });
+                }
+
+                if (missingItems.length > 0) {
+                    console.log(`Auto-seeding ${missingItems.length} missing default items to Supabase...`);
+                    for (const { item, category } of missingItems) {
+                        const dbItem = {
+                            id: item.id,
+                            category: category,
+                            name: item.name,
+                            stage: item.stage || null,
+                            price: category === 'services' ? (item.price || 0) : 0,
+                            sell_price: category !== 'services' ? (item.sellPrice || 0) : 0,
+                            ingredients: JSON.stringify(item.ingredients || []),
+                            image: item.image || null
+                        };
+                        await supabaseInstance.from('items').upsert(dbItem);
+                    }
+                    const { data: refreshedData } = await supabaseInstance.from('items').select('*');
+                    if (refreshedData) {
+                        return db.processItemsData(refreshedData);
+                    }
+                }
+                return db.processItemsData(data);
             }
             console.warn("Supabase items empty or errored. Using local storage.", error);
         }
@@ -310,23 +378,55 @@ const db = {
         return true;
     },
 
+    processMembersData: (data) => {
+        return data.map(m => ({
+            id: m.id,
+            name: m.name,
+            passport: m.passport,
+            phone: m.phone,
+            role: m.role,
+            joinDate: m.join_date,
+            status: m.status,
+            password: m.password,
+            flagIlegal: m.flag_ilegal,
+            illegalRole: m.illegal_role
+        }));
+    },
+
     // --- MEMBERS ---
     getMembers: async () => {
         if (supabaseInstance) {
             const { data, error } = await supabaseInstance.from('members').select('*');
             if (!error && data) {
-                return data.map(m => ({
-                    id: m.id,
-                    name: m.name,
-                    passport: m.passport,
-                    phone: m.phone,
-                    role: m.role,
-                    joinDate: m.join_date,
-                    status: m.status,
-                    password: m.password,
-                    flagIlegal: m.flag_ilegal,
-                    illegalRole: m.illegal_role
-                }));
+                // Fetch local storage members to see if any are missing in Supabase
+                const localMembers = JSON.parse(safeStorage.getItem('members_local') || '[]');
+                const existingIds = new Set(data.map(m => m.id));
+                const missingMembers = localMembers.filter(m => !existingIds.has(m.id));
+
+                if (missingMembers.length > 0) {
+                    console.log(`Auto-seeding ${missingMembers.length} missing members to Supabase...`);
+                    for (const member of missingMembers) {
+                        const dbMember = {
+                            id: member.id,
+                            name: member.name,
+                            passport: member.passport,
+                            phone: member.phone,
+                            role: member.role,
+                            join_date: member.joinDate,
+                            status: member.status,
+                            password: member.password,
+                            flag_ilegal: member.flagIlegal,
+                            illegal_role: member.illegalRole
+                        };
+                        await supabaseInstance.from('members').upsert(dbMember);
+                    }
+                    // Fetch all members again to get the complete set
+                    const { data: refreshedData } = await supabaseInstance.from('members').select('*');
+                    if (refreshedData) {
+                        return db.processMembersData(refreshedData);
+                    }
+                }
+                return db.processMembersData(data);
             }
             console.warn("Supabase members error, using local storage", error);
         }
