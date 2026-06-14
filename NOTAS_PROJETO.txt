@@ -1,0 +1,131 @@
+========================================================
+  RE:Motion Performance Shop — Notas do Projeto
+========================================================
+Última atualização: Junho 2026
+
+------------------------------------------------------------
+ARQUIVOS DO PROJETO
+------------------------------------------------------------
+- index.html       → Estrutura HTML, modais, formulários
+- app.js           → Toda a lógica JavaScript (3200+ linhas)
+- style.css        → Estilos visuais (tema dark, gold p/ ilegal)
+- supabase-client.js → Integração com Supabase + fallback localStorage
+- data.js          → Dados padrão para seeding local
+
+------------------------------------------------------------
+LOGIN DE ADMIN (padrão)
+------------------------------------------------------------
+Email:  admin@admin.com
+Senha:  admin
+Senha do Baú: 1234
+
+------------------------------------------------------------
+COMO FUNCIONA A HIERARQUIA DE PERMISSÕES
+------------------------------------------------------------
+1. Admin (login admin@admin.com) → acesso total
+2. Membros com role "Gerente", "Night Boss", "Owner" → acesso total
+3. Outros membros → acesso baseado nas permissões do cargo (Roles)
+
+Para Área Ilegal:
+- Membro precisa ter flagIlegal = true
+- Cargo ilegal separado do cargo da mecânica
+- Membros "Agregado" = só aparecem na área ilegal, escondidos da mecânica
+
+------------------------------------------------------------
+NIVEIS DE AUTORIZAÇÃO (Cargos)
+------------------------------------------------------------
+Mecânica:
+  - Night Boss / CEO / Gerente → acesso completo
+  - Racer / Mecanico / Estagiario → acesso limitado (configurável)
+  - Runner → acesso básico
+
+Ilegal (flagIlegal = true):
+  - Leader → topo
+  - Sub-Leader
+  - Soldado
+  - Novato
+
+Agregado = membro somente do ilegal (não aparece na hierarquia da mecânica)
+
+------------------------------------------------------------
+O QUE FOI IMPLEMENTADO
+------------------------------------------------------------
+✅ Sistema de login admin + membro
+✅ Cadastro com aprovação pendente
+✅ Opção "Cadastrar como Agregado" no registro
+✅ Flags de ilegal e cargo ilegal separados
+✅ Hierarquia da mecânica (oculta agregados)
+✅ Hierarquia ilegal (só visível para quem tem acesso ilegal)
+✅ Área Ilegal com tema gold + painel separado
+✅ Ações ilegais com presets detalhados (todos os roubos)
+✅ Baú com senha e log de movimentações
+✅ Receitas ilegais
+✅ Carros detidos
+✅ Boosting & rotas de fuga
+✅ Mural de avisos
+✅ Gerenciamento de membros com edição
+✅ Cargos e permissões configuráveis
+✅ Botão "Área Ilegal" só aparece para quem tem acesso
+✅ Busca de itens no carrinho
+
+------------------------------------------------------------
+COMO FUNCIONA A EDIÇÃO DE ITENS
+------------------------------------------------------------
+Para Stages/Serviços/Produtos:
+  - Logar como admin → botão "Alterar Stage" aparece
+  - Clicar no card → abre modal de edição diretamente
+
+Para Membros:
+  - Logar como admin → botão "Editar" no card do membro
+  - OU clicar no card do membro (admin/gerente abre edição diretamente)
+
+Para Receitas Ilícitas:
+  - Icone de lápis no card → abre edição
+
+------------------------------------------------------------
+PRESETS DE AÇÕES DISPONÍVEIS
+------------------------------------------------------------
+1. Roubo à 24/7 (Supermarket)
+2. Roubo a Joalheria
+3. Banco Fleeca (Troca de Tiros)
+4. Banco Fleeca (Fuga)
+5. Roubo à Ammunation
+6. Roubo ao Banco de Paleto
+7. Supply Gang x Gang
+8. Roubo ao Banco da Rota 68
+9. Roubo ao Bobcat Security
+10. Roubo ao Banco Central
+11. Regras de Boosting
+12. Regras de Coke Run
+
+------------------------------------------------------------
+CONFIGURAÇÃO DO SUPABASE (opcional)
+------------------------------------------------------------
+Se tiver banco online:
+1. Clicar no badge de status (canto superior esquerdo do conteúdo)
+2. Inserir URL e Anon Key do Supabase
+3. Salvar — a página recarrega e usa o banco online
+
+Sem Supabase → todos os dados ficam no localStorage do navegador.
+
+Tabelas necessárias no Supabase:
+  - materials (id, name, price, image)
+  - items (id, category, name, stage, price, sell_price, ingredients, image)
+  - members (id, name, role, status, passport, phone, joinDate, password, flagIlegal, illegalRole)
+  - mural (id, created_at, title, content, author, tag)
+  - vault_logs (id, timestamp, member, action, item, quantity)
+  - illegal_records (id, timestamp, description, outcome, participants, loot)
+  - impounded_cars (id, model, plate, owner, retrieved)
+  - illegal_recipes (id, name, time, image, ingredients, recipeId)
+
+------------------------------------------------------------
+PENDÊNCIAS / POSSÍVEIS MELHORIAS FUTURAS
+------------------------------------------------------------
+- [ ] Senha individual por membro (hoje é campo texto simples)
+- [ ] Sistema de notificações no mural
+- [ ] Histórico de promoções/rebaixamentos
+- [ ] Exportar lista de membros
+- [ ] Foto de perfil para membros
+- [ ] Mobile: responsividade no painel ilegal
+
+========================================================

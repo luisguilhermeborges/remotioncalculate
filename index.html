@@ -13,6 +13,8 @@
         href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Outfit:wght@300;400;500;600;700;800&display=swap"
         rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Supabase JS CDN Library -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 
 <body>
@@ -30,8 +32,7 @@
             </div>
 
             <div>
-                <div class="nav-label"></div>
-                <nav class="categories">
+                <nav class="categories" id="normalNav">
                     <button class="category-btn active" id="btn-home" data-category="home">
                         <i class="fa-solid fa-house"></i> Início
                     </button>
@@ -44,12 +45,55 @@
                     <button class="category-btn" id="btn-products" data-category="products">
                         <i class="fa-solid fa-box"></i> Produtos
                     </button>
+                    <button class="category-btn" id="btn-members" data-category="members">
+                        <i class="fa-solid fa-users"></i> Membros
+                    </button>
+                    <button class="category-btn" id="btn-hierarchy" data-category="hierarchy">
+                        <i class="fa-solid fa-sitemap"></i> Hierarquia
+                    </button>
+                    <button class="category-btn" id="btn-vault" data-category="vault">
+                        <i class="fa-solid fa-vault"></i> Baú
+                    </button>
+                </nav>
+                <nav class="categories" id="illegalNav" style="display: none;">
+                    <button class="category-btn" id="btn-illegal-recipes" data-category="illegal-recipes">
+                        <i class="fa-solid fa-flask"></i> Produtos
+                    </button>
+                    <button class="category-btn" id="btn-illegal-actions" data-category="illegal-actions">
+                        <i class="fa-solid fa-gun"></i> Ações
+                    </button>
+                    <button class="category-btn" id="btn-illegal-hierarchy" data-category="illegal-hierarchy">
+                        <i class="fa-solid fa-sitemap"></i> Hierarquia
+                    </button>
+                    <button class="category-btn" id="btn-illegal-boosting" data-category="illegal-boosting">
+                        <i class="fa-solid fa-car-on"></i> Boosting/Fuga
+                    </button>
+                    <button class="category-btn" id="btn-illegal-cars" data-category="illegal-cars">
+                        <i class="fa-solid fa-car-burst"></i> Carros Detidos
+                    </button>
                 </nav>
             </div>
 
-            <div class="sidebar-footer">
-                <i class="fa-solid fa-circle-dot fa-xs"></i>
-                <span>Bigas gerente, digita 1</span>
+            <!-- Login & Footer at the Bottom of Sidebar -->
+            <div class="sidebar-bottom" style="margin-top: auto; display: flex; flex-direction: column; gap: 10px;">
+                <button class="category-btn" id="btnToggleIllegal"
+                    style="border: 1px solid rgba(245, 158, 11, 0.25); color: #f59e0b; background: rgba(245, 158, 11, 0.05); font-weight: bold;">
+                    <i class="fa-solid fa-mask"></i> Área Ilegal
+                </button>
+                <div class="admin-divider" id="adminDivider"
+                    style="display: none; height: 1px; background: var(--border-dark); margin: 5px 0;"></div>
+                <button class="category-btn admin-only" id="btn-manage-materials" style="display: none;">
+                    <i class="fa-solid fa-coins"></i> Preço Materiais
+                </button>
+                <button class="category-btn" id="btnLoginToggle">
+                    <i class="fa-solid fa-lock"></i> Login Admin
+                </button>
+
+                <div class="sidebar-footer"
+                    style="border-top: 1px solid var(--border-dark); padding-top: 15px; margin-top: 5px;">
+                    <i class="fa-solid fa-circle-dot fa-xs"></i>
+                    <span>Bigas gerente, digita 1</span>
+                </div>
             </div>
         </aside>
 
@@ -57,14 +101,38 @@
         <main class="main-content">
             <header class="top-header">
                 <div class="header-left">
-                    <h2 id="categoryTitle">Início</h2>
+                    <div class="header-title-row">
+                        <h2 id="categoryTitle">Início</h2>
+                        <div id="dbStatusBadge" class="status-badge status-local" title="Configurar Supabase">
+                            <span class="status-dot"></span>
+                            <span class="status-text">Modo Local</span>
+                        </div>
+                    </div>
                     <p id="categorySubtitle">Painel de controle e serviços rápidos</p>
                 </div>
-                <div class="search-bar" style="display: none;">
-                    <i class="fa-solid fa-magnifying-glass"></i>
-                    <input type="text" id="searchInput" placeholder="Buscar item...">
+                <div class="header-right">
+                    <div class="search-bar" style="display: none;">
+                        <i class="fa-solid fa-magnifying-glass"></i>
+                        <input type="text" id="searchInput" placeholder="Buscar item...">
+                    </div>
                 </div>
             </header>
+
+            <!-- Action buttons row — below header, right-aligned, clean and harmonious -->
+            <div class="header-action-buttons-row"
+                style="display: flex; justify-content: flex-end; gap: 8px; padding: 0 30px; margin-top: 10px; margin-bottom: 15px;">
+                <button id="editCurrentBtn" class="action-btn admin-only"
+                    style="display: none; background: rgba(255,255,255,0.05); border-color: var(--border-dark); color: var(--white-main); padding: 8px 16px; border-radius: var(--radius-sm); font-weight: 600;">
+                    <i class="fa-solid fa-pen"></i> Alterar Item
+                </button>
+                <button id="addNewItemBtn" class="action-btn primary-btn admin-only"
+                    style="display: none; background: var(--red-subtle); border-color: var(--border-red); color: var(--white-main); padding: 8px 16px; border-radius: var(--radius-sm); font-weight: 600;">
+                    <i class="fa-solid fa-plus"></i> Novo Item
+                </button>
+            </div>
+
+            <!-- Dynamic Sub-Navigation Row -->
+            <div id="subCategoryTabsContainer" class="subcategory-tabs-row" style="display: none;"></div>
 
             <!-- Stage bundle buttons — só aparece em Stages -->
             <div id="stageButtonsContainer" class="stage-buttons-row"></div>
@@ -128,7 +196,635 @@
         <span class="cart-count-badge" id="floatingCartBadge">0</span>
     </button>
 
+    <!-- ═══ MODAL: LOGIN / CADASTRO ═══ -->
+    <div id="modalLogin" class="modal-overlay">
+        <div class="modal-content">
+            <header class="modal-header">
+                <h3 id="loginModalTitle"><i class="fa-solid fa-lock"></i> Autenticação</h3>
+                <button class="modal-close-btn">&times;</button>
+            </header>
+
+            <div class="auth-tabs"
+                style="display: flex; border-bottom: 1px solid var(--border-dark); margin-bottom: 15px;">
+                <button class="auth-tab-btn active" id="authTabLogin"
+                    style="flex: 1; padding: 10px; background: none; border: none; color: var(--white-main); border-bottom: 2px solid var(--red-primary); cursor: pointer; font-weight: bold;">Login</button>
+                <button class="auth-tab-btn" id="authTabRegister"
+                    style="flex: 1; padding: 10px; background: none; border: none; color: var(--white-muted); border-bottom: 2px solid transparent; cursor: pointer; font-weight: bold;">Cadastrar-se</button>
+            </div>
+
+            <!-- LOGIN FORM -->
+            <form id="formLogin" class="modal-body">
+                <div class="form-group">
+                    <label for="loginEmail">E-mail ou Passaporte</label>
+                    <input type="text" id="loginEmail" placeholder="admin@admin.com ou ID" required>
+                </div>
+                <div class="form-group">
+                    <label for="loginPassword">Senha</label>
+                    <input type="password" id="loginPassword" placeholder="••••••••" required>
+                </div>
+                <div class="error-msg" id="loginErrorMsg"></div>
+                <button type="submit" class="modal-submit-btn">Entrar</button>
+            </form>
+
+            <!-- REGISTER FORM -->
+            <form id="formRegister" class="modal-body" style="display: none;">
+                <div class="form-group">
+                    <label for="regName">Nome Completo</label>
+                    <input type="text" id="regName" placeholder="Ex: Lucas Silva" required>
+                </div>
+                <div class="form-group">
+                    <label for="regPassport">Passaporte (ID)</label>
+                    <input type="text" id="regPassport" placeholder="Ex: 12345" required>
+                </div>
+                <div class="form-group">
+                    <label for="regPhone">Telefone</label>
+                    <input type="text" id="regPhone" placeholder="Ex: 555-0199" required>
+                </div>
+                <div class="form-group">
+                    <label for="regPassword">Senha de Acesso</label>
+                    <input type="password" id="regPassword" placeholder="Crie uma senha forte" required>
+                </div>
+                <div class="form-group" style="flex-direction:row; align-items:center; gap:10px; margin: 10px 0;">
+                    <input type="checkbox" id="regIsAgregado" style="width:auto; margin:0; cursor:pointer;">
+                    <label for="regIsAgregado" style="text-transform:none; font-weight:600; cursor:pointer; margin:0; color:var(--white-off);">Cadastrar como Agregado (Somente Ilegal)</label>
+                </div>
+                <div class="error-msg" id="regErrorMsg"></div>
+
+                <button type="submit" class="modal-submit-btn"
+                    style="background-color: var(--success); border-color: rgba(34,197,94,0.2); color: white;">Solicitar
+                    Cadastro</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- ═══ MODAL: CONFIG SUPABASE ═══ -->
+    <div id="modalConfig" class="modal-overlay">
+        <div class="modal-content">
+            <header class="modal-header">
+                <h3><i class="fa-solid fa-plug"></i> Conexão Supabase</h3>
+                <button class="modal-close-btn">&times;</button>
+            </header>
+            <div class="modal-body">
+                <p class="modal-desc">Conecte sua base de dados do Supabase. Se deixar vazio, os dados serão salvos no
+                    armazenamento local do navegador.</p>
+                <div class="form-group">
+                    <label for="configUrl">Supabase URL</label>
+                    <input type="url" id="configUrl" placeholder="https://xxxx.supabase.co">
+                </div>
+                <div class="form-group">
+                    <label for="configKey">Supabase Anon Key</label>
+                    <input type="password" id="configKey" placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...">
+                </div>
+                <div class="config-actions">
+                    <button id="btnSaveConfig" class="modal-submit-btn">Salvar Conexão</button>
+                    <button id="btnImportLocalData" class="action-btn success-btn"
+                        style="width:100%; justify-content:center; margin-top:10px; display:none;">
+                        <i class="fa-solid fa-cloud-arrow-up"></i> Sincronizar Dados Locais para Supabase
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══ MODAL: EDIT/CREATE ITEM ═══ -->
+    <div id="modalItemEdit" class="modal-overlay">
+        <div class="modal-content large">
+            <header class="modal-header">
+                <h3 id="itemModalTitle"><i class="fa-solid fa-pen-to-square"></i> Editar Item</h3>
+                <button class="modal-close-btn">&times;</button>
+            </header>
+            <form id="formItemEdit" class="modal-body">
+                <input type="hidden" id="editItemId">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="editItemName">Nome do Item</label>
+                        <input type="text" id="editItemName" required placeholder="Ex: Turbina Upgrade">
+                    </div>
+                    <div class="form-group">
+                        <label for="editItemCategory">Categoria</label>
+                        <select id="editItemCategory" required>
+                            <option value="components">Stages (Peças)</option>
+                            <option value="services">Serviços</option>
+                            <option value="products">Produtos</option>
+                            <option value="illegal-recipes">Produtos Ilicítos</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group" id="groupItemStage">
+                        <label for="editItemStage">Stage</label>
+                        <select id="editItemStage">
+                            <option value="">Nenhum</option>
+                            <option value="1">Stage 1</option>
+                            <option value="2">Stage 2</option>
+                            <option value="3">Stage 3</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="editItemPrice" id="labelItemPrice">Preço de Venda / Serviço ($)</label>
+                        <input type="number" id="editItemPrice" required min="0" placeholder="0">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="editItemImage">Ícone / Imagem</label>
+                        <select id="editItemImage">
+                            <!-- Populated in JS with available icons -->
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Ingredients/Materials Required Section -->
+                <div class="ingredients-editor-section">
+                    <h4>Materiais Necessários</h4>
+                    <div class="ingredients-list-builder" id="ingredientsListBuilder">
+                        <!-- Dynamic ingredients builder in JS -->
+                    </div>
+                    <button type="button" id="btnAddIngredientRow" class="action-btn" style="margin-top: 8px;">
+                        <i class="fa-solid fa-plus"></i> Adicionar Material
+                    </button>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" id="btnDeleteItem" class="action-btn danger-btn admin-only"
+                        style="margin-right:auto;">
+                        <i class="fa-solid fa-trash"></i> Excluir Item
+                    </button>
+                    <button type="submit" class="modal-submit-btn" style="width:auto; padding:10px 24px;">Salvar
+                        Item</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ═══ MODAL: NEW MURAL POST ═══ -->
+    <div id="modalMuralPost" class="modal-overlay">
+        <div class="modal-content">
+            <header class="modal-header">
+                <h3><i class="fa-solid fa-bullhorn"></i> Publicar no Mural</h3>
+                <button class="modal-close-btn">&times;</button>
+            </header>
+            <form id="formMuralPost" class="modal-body">
+                <div class="form-group">
+                    <label for="muralTitle">Título do Aviso</label>
+                    <input type="text" id="muralTitle" required placeholder="Ex: Novo Stage 3 Disponível!">
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="muralTag">Categoria / Tag</label>
+                        <select id="muralTag" required>
+                            <option value="Aviso">Aviso (Cinza)</option>
+                            <option value="Novidade" selected>Novidade (Cyan)</option>
+                            <option value="Urgente">Urgente (Vermelho)</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="muralAuthor">Autor</label>
+                        <input type="text" id="muralAuthor" required placeholder="Nome do autor">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="muralContent">Conteúdo</label>
+                    <textarea id="muralContent" required rows="4" placeholder="Escreva a mensagem aqui..."></textarea>
+                </div>
+                <button type="submit" class="modal-submit-btn">Publicar Aviso</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- ═══ MODAL: MANAGE MATERIALS PRICES ═══ -->
+    <div id="modalMaterialsManager" class="modal-overlay">
+        <div class="modal-content">
+            <header class="modal-header">
+                <h3><i class="fa-solid fa-coins"></i> Preços dos Materiais</h3>
+                <button class="modal-close-btn">&times;</button>
+            </header>
+            <form id="formMaterialsManager" class="modal-body">
+                <p class="modal-desc">Edite os preços base dos materiais. As alterações atualizarão os custos estimados
+                    de fabricação dos stages e itens no carrinho.</p>
+                <div class="materials-price-grid" id="materialsPriceGrid">
+                    <!-- Dynamic inputs populated in JS -->
+                </div>
+                <button type="submit" class="modal-submit-btn" style="margin-top:16px;">Salvar Preços</button>
+            </form>
+        </div>
+    </div>
+    <!-- ═══ MODAL: EDIT/CREATE MEMBER ═══ -->
+    <div id="modalMemberEdit" class="modal-overlay">
+        <div class="modal-content">
+            <header class="modal-header">
+                <h3 id="memberModalTitle"><i class="fa-solid fa-user-pen"></i> Editar Membro</h3>
+                <button class="modal-close-btn">&times;</button>
+            </header>
+            <form id="formMemberEdit" class="modal-body">
+                <input type="hidden" id="editMemberId">
+                <div class="form-group">
+                    <label for="editMemberName">Nome do Membro</label>
+                    <input type="text" id="editMemberName" required placeholder="Ex: Joãozinho Silva Sauro">
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="editMemberRole">Cargo / Nível</label>
+                        <select id="editMemberRole" required>
+                            <option value="CEO">CEO</option>
+                            <option value="Gerente">Gerente</option>
+                            <option value="Mecanico">Mecanico</option>
+                            <option value="Estagiario">Estagiario</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="editMemberStatus">Status</label>
+                        <select id="editMemberStatus" required>
+                            <option value="Ativo">Ativo</option>
+                            <option value="Inativo">Inativo</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="editMemberPassport">Passaporte</label>
+                        <input type="text" id="editMemberPassport" required placeholder="M0999">
+                    </div>
+                    <div class="form-group">
+                        <label for="editMemberPhone">Telefone</label>
+                        <input type="text" id="editMemberPhone" required placeholder="Ex: (011) 312-642">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="editMemberJoinDate">Data de Ingresso</label>
+                    <input type="date" id="editMemberJoinDate" required>
+                </div>
+                <div class="form-row" style="align-items: center; margin: 10px 0;">
+                    <div class="form-group" style="flex-direction:row; align-items:center; gap:10px; margin: 0; width: auto;">
+                        <input type="checkbox" id="editMemberIlegal" style="width:auto; margin:0; cursor:pointer;" onchange="document.getElementById('editMemberIllegalRoleGroup').style.display = this.checked ? 'block' : 'none';">
+                        <label for="editMemberIlegal"
+                            style="text-transform:none; font-weight:600; cursor:pointer; margin:0;">Autorização Ilegal
+                            (Acesso à Área Ilegal)</label>
+                    </div>
+                    <div class="form-group" id="editMemberIllegalRoleGroup" style="margin: 0; flex: 1; display: none;">
+                        <label for="editMemberIllegalRole" style="font-size:0.75rem; color:var(--white-muted); margin-bottom:2px;">Cargo/Nível Ilegal</label>
+                        <select id="editMemberIllegalRole" style="width:100%; padding:6px; background:var(--black-card); border:1px solid var(--border-dark); border-radius:4px; color:#f59e0b; font-size:0.8rem;">
+                            <option value="Novato">Novato</option>
+                            <option value="Soldado">Soldado</option>
+                            <option value="Sub-Leader">Sub-Leader</option>
+                            <option value="Leader">Leader</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer" style="padding-left:0; padding-right:0;">
+                    <button type="button" id="btnDeleteMember" class="action-btn danger-btn admin-only"
+                        style="margin-right:auto;">
+                        <i class="fa-solid fa-trash"></i> Remover
+                    </button>
+                    <button type="submit" class="modal-submit-btn" style="width:auto; padding:10px 24px;">Salvar
+                        Membro</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    <!-- ═══ MODAL: CONFIG/EDIT ROLE (CARGO) ═══ -->
+    <div id="modalRoleEdit" class="modal-overlay">
+        <div class="modal-content">
+            <header class="modal-header">
+                <h3 id="roleModalTitle"><i class="fa-solid fa-shield-halved"></i> Configurar Cargo</h3>
+                <button class="modal-close-btn">&times;</button>
+            </header>
+            <form id="formRoleEdit" class="modal-body">
+                <input type="hidden" id="editRoleId">
+                <div class="form-group">
+                    <label for="editRoleName">Nome do Cargo</label>
+                    <input type="text" id="editRoleName" required placeholder="Ex: Mecânico Chefe">
+                </div>
+                <div class="form-group">
+                    <label style="margin-bottom:8px;">Permissões de Acesso</label>
+                    <div style="display:flex; flex-direction:column; gap:10px;" id="rolePermissionsList">
+                        <label
+                            style="display:flex; align-items:center; gap:8px; text-transform:none; font-weight:normal; font-size:0.88rem; cursor:pointer;">
+                            <input type="checkbox" value="edit_stages" style="width:auto;"> Alterar Stages (Peças)
+                        </label>
+                        <label
+                            style="display:flex; align-items:center; gap:8px; text-transform:none; font-weight:normal; font-size:0.88rem; cursor:pointer;">
+                            <input type="checkbox" value="edit_services" style="width:auto;"> Alterar Serviços
+                        </label>
+                        <label
+                            style="display:flex; align-items:center; gap:8px; text-transform:none; font-weight:normal; font-size:0.88rem; cursor:pointer;">
+                            <input type="checkbox" value="edit_products" style="width:auto;"> Alterar Produtos
+                        </label>
+                        <label
+                            style="display:flex; align-items:center; gap:8px; text-transform:none; font-weight:normal; font-size:0.88rem; cursor:pointer;">
+                            <input type="checkbox" value="access_vault" style="width:auto;"> Acesso ao Baú
+                        </label>
+                        <label
+                            style="display:flex; align-items:center; gap:8px; text-transform:none; font-weight:normal; font-size:0.88rem; cursor:pointer;">
+                            <input type="checkbox" value="access_illegal" style="width:auto;"> Acesso Ilegal
+                        </label>
+                        <label
+                            style="display:flex; align-items:center; gap:8px; text-transform:none; font-weight:normal; font-size:0.88rem; cursor:pointer;">
+                            <input type="checkbox" value="edit_members" style="width:auto;"> Manutenção de Membros
+                        </label>
+                        <label
+                            style="display:flex; align-items:center; gap:8px; text-transform:none; font-weight:normal; font-size:0.88rem; cursor:pointer;">
+                            <input type="checkbox" value="manage_roles" style="width:auto;"> Manutenção de Cargos
+                        </label>
+                    </div>
+                </div>
+                <div class="modal-footer" style="padding-left:0; padding-right:0;">
+                    <button type="button" id="btnDeleteRole" class="action-btn danger-btn admin-only"
+                        style="margin-right:auto;">
+                        <i class="fa-solid fa-trash"></i> Excluir
+                    </button>
+                    <button type="submit" class="modal-submit-btn" style="width:auto; padding:10px 24px;">Salvar
+                        Cargo</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ═══ MODAL: PASSCODE VAULT PROMPT ═══ -->
+    <div id="modalVaultAuth" class="modal-overlay">
+        <div class="modal-content" style="max-width:320px;">
+            <header class="modal-header">
+                <h3><i class="fa-solid fa-key"></i> Acesso ao Baú</h3>
+                <button class="modal-close-btn">&times;</button>
+            </header>
+            <form id="formVaultAuth" class="modal-body" style="align-items:center; gap:16px;">
+                <p style="font-size:0.85rem; color:var(--white-muted); text-align:center;">Digite a senha de 4 dígitos
+                    para abrir o Baú.</p>
+                <input type="password" id="vaultPasswordInput" required maxlength="8" placeholder="••••"
+                    style="text-align:center; font-size:1.6rem; letter-spacing:8px; width:100%; max-width:200px;">
+                <div class="error-msg" id="vaultAuthErrorMsg" style="text-align:center;"></div>
+                <button type="submit" class="modal-submit-btn" style="width:100%;">Desbloquear</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- ═══ MODAL: CHANGE VAULT PASSWORD ═══ -->
+    <div id="modalVaultChangePassword" class="modal-overlay">
+        <div class="modal-content" style="max-width:340px;">
+            <header class="modal-header">
+                <h3><i class="fa-solid fa-lock"></i> Mudar Senha Baú</h3>
+                <button class="modal-close-btn">&times;</button>
+            </header>
+            <form id="formVaultChangePassword" class="modal-body">
+                <div class="form-group">
+                    <label for="vaultOldPass">Senha Antiga</label>
+                    <input type="password" id="vaultOldPass" required placeholder="Ex: 1234">
+                </div>
+                <div class="form-group">
+                    <label for="vaultNewPass">Nova Senha</label>
+                    <input type="password" id="vaultNewPass" required placeholder="Nova Senha">
+                </div>
+                <div class="error-msg" id="vaultChangePassError" style="display:none;"></div>
+                <button type="submit" class="modal-submit-btn">Alterar Senha</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- ═══ MODAL: REGISTER VAULT LOG (TRANSACTION) ═══ -->
+    <div id="modalVaultLog" class="modal-overlay">
+        <div class="modal-content">
+            <header class="modal-header">
+                <h3><i class="fa-solid fa-right-left"></i> Registrar Movimentação</h3>
+                <button class="modal-close-btn">&times;</button>
+            </header>
+            <form id="formVaultLog" class="modal-body">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="vaultLogMember">Membro Executante</label>
+                        <select id="vaultLogMember" required>
+                            <!-- Populated dynamically -->
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="vaultLogAction">Operação</label>
+                        <select id="vaultLogAction" required>
+                            <option value="Entrada">Entrada (Depósito)</option>
+                            <option value="Saída">Saída (Retirada)</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="vaultLogItem">Material / Item</label>
+                        <select id="vaultLogItem" required>
+                            <!-- Populated with materials & standard items -->
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="vaultLogQty">Quantidade</label>
+                        <input type="number" id="vaultLogQty" required min="1" placeholder="Ex: 100">
+                    </div>
+                </div>
+                <button type="submit" class="modal-submit-btn" style="margin-top:10px;">Confirmar Movimentação</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- ═══ MODAL: ILLEGAL PASSPORT AUTHENTICATION ═══ -->
+    <div id="modalIllegalAuth" class="modal-overlay">
+        <div class="modal-content" style="max-width:340px;">
+            <header class="modal-header text-gold">
+                <h3><i class="fa-solid fa-mask"></i> Acesso Área Ilegal</h3>
+                <button class="modal-close-btn">&times;</button>
+            </header>
+            <form id="formIllegalAuth" class="modal-body" style="gap:16px;">
+                <p style="font-size:0.85rem; color:var(--white-muted); text-align:center;">Informe o seu **Passaporte**
+                    para validar se você possui autorização ilegal.</p>
+                <div class="form-group">
+                    <label for="illegalPassportInput">Passaporte</label>
+                    <input type="text" id="illegalPassportInput" required placeholder="Ex: 844"
+                        style="text-align:center; font-size:1.2rem;">
+                </div>
+                <div class="error-msg" id="illegalAuthErrorMsg" style="text-align:center;"></div>
+                <button type="submit" class="modal-submit-btn"
+                    style="background:#f59e0b; color:black; font-weight:bold;">Acessar Painel</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- ═══ MODAL: IMPOUNDED CAR EDIT/CREATE ═══ -->
+    <div id="modalImpoundedCar" class="modal-overlay">
+        <div class="modal-content">
+            <header class="modal-header">
+                <h3 id="impoundedCarTitle"><i class="fa-solid fa-car-side"></i> Detalhes do Carro Detido</h3>
+                <button class="modal-close-btn">&times;</button>
+            </header>
+            <form id="formImpoundedCar" class="modal-body">
+                <input type="hidden" id="editCarId">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="editCarModel">Modelo do Carro</label>
+                        <input type="text" id="editCarModel" required placeholder="Ex: Nissan GT-R">
+                    </div>
+                    <div class="form-group">
+                        <label for="editCarPlate">Placa</label>
+                        <input type="text" id="editCarPlate" required placeholder="Ex: ABC-1234">
+                    </div>
+                </div>
+                <div class="form-row" style="align-items: center;">
+                    <div class="form-group" style="flex: 2;">
+                        <label for="editCarOwner">Proprietário / Piloto</label>
+                        <input type="text" id="editCarOwner" placeholder="Ex: Batista Piloto">
+                    </div>
+                    <div class="form-group" style="flex: 1; margin-top: 24px; padding-left: 10px;">
+                        <label
+                            style="display:flex; align-items:center; gap:6px; cursor:pointer; font-size:0.85rem; color:var(--white-off);">
+                            <input type="checkbox" id="editCarOwnerUnknown"
+                                onchange="document.getElementById('editCarOwner').value = this.checked ? 'Não sei o dono' : ''; document.getElementById('editCarOwner').disabled = this.checked;">
+                            Não sei o Dono
+                        </label>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="editCarRetrieved">Retirado?</label>
+                    <select id="editCarRetrieved" required>
+                        <option value="Não">Não</option>
+                        <option value="Sim">Sim</option>
+                    </select>
+                </div>
+                <div class="modal-footer" style="padding-left:0; padding-right:0;">
+                    <button type="button" id="btnDeleteImpoundedCar" class="action-btn danger-btn admin-only"
+                        style="margin-right:auto;">
+                        <i class="fa-solid fa-trash"></i> Remover
+                    </button>
+                    <button type="submit" class="modal-submit-btn" style="width:auto; padding:10px 24px;">Salvar
+                        Veículo</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ═══ MODAL: ESCAPE CARD EDIT ═══ -->
+    <div id="modalEscapeCard" class="modal-overlay">
+        <div class="modal-content">
+            <header class="modal-header">
+                <h3 id="escapeCardTitle"><i class="fa-solid fa-map"></i> Detalhes do Card de Fuga</h3>
+                <button class="modal-close-btn">&times;</button>
+            </header>
+            <form id="formEscapeCard" class="modal-body">
+                <input type="hidden" id="editEscapeId">
+                <div class="form-group">
+                    <label for="editEscapeTitle">Título da Rota</label>
+                    <input type="text" id="editEscapeTitle" required placeholder="Ex: Fuga do Metrô Central">
+                </div>
+                <div class="form-group">
+                    <label for="editEscapePhoto">URL da Foto</label>
+                    <input type="url" id="editEscapePhoto" required placeholder="Ex: https://i.imgur.com/example.jpg">
+                </div>
+                <div class="form-group">
+                    <label for="editEscapeLocation">Localização / Resumo do Trajeto</label>
+                    <textarea id="editEscapeLocation" rows="3" required
+                        placeholder="Ex: Rampa de acesso próxima ao túnel do metrô, excelente escoamento para motos..."></textarea>
+                </div>
+                <div class="modal-footer" style="padding-left:0; padding-right:0;">
+                    <button type="button" id="btnDeleteEscapeCard" class="action-btn danger-btn admin-only"
+                        style="margin-right:auto; display:none;">
+                        <i class="fa-solid fa-trash"></i> Remover Rota
+                    </button>
+                    <button type="submit" class="modal-submit-btn" style="width:auto; padding:10px 24px;">Salvar
+                        Rota</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ═══ MODAL: ACTION PRESET EDIT/CREATE ═══ -->
+    <div id="modalActionPreset" class="modal-overlay">
+        <div class="modal-content">
+            <header class="modal-header">
+                <h3 id="actionPresetTitle"><i class="fa-solid fa-gun"></i> Detalhes do Tipo de Ação</h3>
+                <button class="modal-close-btn">&times;</button>
+            </header>
+            <form id="formActionPreset" class="modal-body">
+                <input type="hidden" id="editActionPresetId">
+                <div class="form-group">
+                    <label for="editActionPresetName">Nome da Ação</label>
+                    <input type="text" id="editActionPresetName" required placeholder="Ex: Roubo à Joalheria">
+                </div>
+                <div class="form-group">
+                    <label for="editActionPresetDesc">Descrição / Objetivo</label>
+                    <textarea id="editActionPresetDesc" rows="2" required
+                        placeholder="Ex: Assalto ao cofre principal..."></textarea>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="editActionPresetMembers">Integrantes</label>
+                        <input type="text" id="editActionPresetMembers" required placeholder="Ex: 2 a 5 integrantes">
+                    </div>
+                    <div class="form-group">
+                        <label for="editActionPresetWeapons">Armamento Recomendado</label>
+                        <input type="text" id="editActionPresetWeapons" required placeholder="Ex: Pistolas e Lockpicks">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="editActionPresetRules">Diretrizes / Regras da Ação (Uma por linha)</label>
+                    <textarea id="editActionPresetRules" rows="4" required
+                        placeholder="Neutralize a segurança interna&#10;Abra o cofre com lockpick&#10;Fuga de moto pelos canais"></textarea>
+                </div>
+                <div class="modal-footer" style="padding-left:0; padding-right:0;">
+                    <button type="button" id="btnDeleteActionPreset" class="action-btn danger-btn admin-only"
+                        style="margin-right:auto; display:none;">
+                        <i class="fa-solid fa-trash"></i> Remover Tipo
+                    </button>
+                    <button type="submit" class="modal-submit-btn" style="width:auto; padding:10px 24px;">Salvar Tipo de
+                        Ação</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="modalActionReport" class="modal-overlay">
+        <div class="modal-content">
+            <header class="modal-header">
+                <h3><i class="fa-solid fa-square-poll-horizontal"></i> Novo Relatório de Ação</h3>
+                <button class="modal-close-btn">&times;</button>
+            </header>
+            <form id="formActionReport" class="modal-body">
+                <div class="form-group">
+                    <label for="actionDesc">Descrição da Ação</label>
+                    <input type="text" id="actionDesc" required
+                        placeholder="Ex: Roubo ao Banco Central / Fuga de Helicóptero">
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="actionOutcome">Resultado</label>
+                        <select id="actionOutcome" required>
+                            <option value="Sucesso">Sucesso (Completado)</option>
+                            <option value="Fracasso">Fracasso (Presos / Apreendido)</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="actionParticipants">Participantes</label>
+                        <input type="text" id="actionParticipants" required placeholder="Nomes separados por vírgula">
+                    </div>
+                </div>
+                <button type="submit" class="modal-submit-btn">Registrar Ação</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- ═══ MODAL: EDIT SELECTOR ═══ -->
+    <div id="modalEditSelector" class="modal-overlay">
+        <div class="modal-content" style="max-width: 400px;">
+            <header class="modal-header">
+                <h3 id="editSelectorTitle"><i class="fa-solid fa-pen"></i> Selecionar para Alterar</h3>
+                <button class="modal-close-btn">&times;</button>
+            </header>
+            <form id="formEditSelector" class="modal-body">
+                <div class="form-group">
+                    <label for="editSelectorSelect" id="editSelectorLabel">Escolha o item para editar</label>
+                    <select id="editSelectorSelect" required
+                        style="width: 100%; padding: 10px; background: var(--black-panel); border: 1px solid var(--border-dark); border-radius: var(--radius-sm); color: var(--white-main);">
+                        <!-- Options filled dynamically -->
+                    </select>
+                </div>
+                <button type="submit" class="modal-submit-btn" style="width: 100%;">Editar Selecionado</button>
+            </form>
+        </div>
+    </div>
+
     <script src="data.js?v=9"></script>
+    <script src="supabase-client.js?v=9"></script>
     <script src="app.js?v=9"></script>
 </body>
 
