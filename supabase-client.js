@@ -506,6 +506,19 @@ const db = {
 
     // --- AUTHENTICATION ---
     login: async (email, password) => {
+        // Always check local admins first (works with or without Supabase)
+        const localAdmins = [
+            { email: 'ryan@remotion.com', password: 'lasanha' },
+            { email: 'bigas@remotion.com', password: '2928' },
+            { email: 'teste@remotion.com', password: 'teste123' }
+        ];
+        const localMatch = localAdmins.find(u => u.email === email && u.password === password);
+        if (localMatch) {
+            safeStorage.setItem('admin_logged_in', 'true');
+            safeStorage.setItem('admin_email', email);
+            return { success: true, email };
+        }
+
         if (supabaseInstance) {
             const { data, error } = await supabaseInstance.auth.signInWithPassword({ email, password });
             if (!error && data.user) {
@@ -516,18 +529,6 @@ const db = {
             return { success: false, error: error.message };
         }
 
-        // Local authentication simulator for testing
-        const localAdmins = [
-            { email: 'ryan@remotion.com', password: 'lasanha' },
-            { email: 'bigas@remotion.com', password: '2928' },
-            { email: 'teste@remotion.com', password: 'teste123' }
-        ];
-        const matched = localAdmins.find(u => u.email === email && u.password === password);
-        if (matched) {
-            safeStorage.setItem('admin_logged_in', 'true');
-            safeStorage.setItem('admin_email', email);
-            return { success: true, email };
-        }
         return { success: false, error: 'Credenciais inválidas.' };
     },
 

@@ -2959,7 +2959,11 @@ window.openMemberEditModal = function(memberId = '') {
 
     // Populate role list dropdown based on created roles list + Agregado
     const roleSel = document.getElementById('editMemberRole');
-    roleSel.innerHTML = activeRoles.map(r => `<option value="${r.name}">${r.name}</option>`).join('') + `<option value="Agregado">Agregado (Somente Ilegal)</option>`;
+    const rolesForDropdown = activeRoles.length > 0 ? activeRoles : [
+        { name: 'Night Boss' }, { name: 'Under Boss' }, { name: 'Gerente' },
+        { name: 'Racer' }, { name: 'Runner' }
+    ];
+    roleSel.innerHTML = rolesForDropdown.map(r => `<option value="${r.name}">${r.name}</option>`).join('') + `<option value="Agregado">Agregado (Somente Ilegal)</option>`;
 
     if (memberId) {
         titleEl.innerHTML = `<i class="fa-solid fa-user-pen"></i> Editar Membro`;
