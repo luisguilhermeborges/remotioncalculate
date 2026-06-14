@@ -98,10 +98,25 @@ const initLocalStorageFallback = () => {
     seedIfEmpty('illegal_records_local', []);
     seedIfEmpty('impounded_cars_local', []);
 
-    // Initialize members as empty, and run a one-time check to wipe out previously seeded mock members
-    if (!safeStorage.getItem('members_local_cleared_mock')) {
-        safeStorage.setItem('members_local', JSON.stringify([]));
-        safeStorage.setItem('members_local_cleared_mock', 'true');
+    // Initialize members — seed a default test member with passport 123 for local testing
+    const MEMBERS_SEED_VERSION = 'v2_test123';
+    if (safeStorage.getItem('members_seed_version') !== MEMBERS_SEED_VERSION) {
+        const defaultMembers = [
+            {
+                id: 'mem_test_001',
+                name: 'Teste Ilegal',
+                passport: '123',
+                phone: '555-0001',
+                role: 'Runner',
+                joinDate: new Date().toLocaleDateString('pt-BR'),
+                status: 'Ativo',
+                password: 'teste123',
+                flagIlegal: true,
+                illegalRole: 'Novato'
+            }
+        ];
+        safeStorage.setItem('members_local', JSON.stringify(defaultMembers));
+        safeStorage.setItem('members_seed_version', MEMBERS_SEED_VERSION);
     } else if (!safeStorage.getItem('members_local')) {
         safeStorage.setItem('members_local', JSON.stringify([]));
     }
