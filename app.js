@@ -687,17 +687,17 @@ function renderMembersScreen(searchTerm = '') {
 
         return `
             <div class="member-card" onclick="window.handleMemberCardClick('${m.id}')" style="cursor: pointer;">
+                <div class="member-card-badges" style="position: absolute; top: 12px; right: 12px; display: flex; flex-direction: column; align-items: flex-end; gap: 4px; z-index: 10;">
+                    <span class="member-status-label status-${m.status.toLowerCase()}">${m.status}</span>
+                    ${isIlegalTag}
+                </div>
                 <div class="member-card-header">
                     <div class="member-avatar">${initial}</div>
-                    <div class="member-meta">
-                        <h4 class="member-name">${m.name}</h4>
+                    <div class="member-meta" style="margin-right: 75px;">
+                        <h4 class="member-name" style="white-space: normal; word-break: break-word; line-height: 1.2; margin-bottom: 2px;">${m.name}</h4>
                         <span class="member-role-badge">
                             <i class="fa-solid fa-shield-halved"></i> ${m.role}
                         </span>
-                    </div>
-                    <div style="display:flex; flex-direction:column; align-items:flex-end; gap:4px;">
-                        <span class="member-status-label status-${m.status.toLowerCase()}">${m.status}</span>
-                        ${isIlegalTag}
                     </div>
                 </div>
                 <div class="member-info-list">
