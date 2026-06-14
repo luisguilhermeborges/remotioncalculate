@@ -2046,6 +2046,37 @@ function updateAuthUI() {
 
     if (btnManageMaterials) btnManageMaterials.style.display = isAdminMode ? 'flex' : 'none';
     if (adminDivider) adminDivider.style.display = isAdminMode ? 'block' : 'none';
+
+    // Toggle visibility of restricted pages (Membros, Hierarquia, Baú)
+    const btnMembers = document.getElementById('btn-members');
+    const btnHierarchy = document.getElementById('btn-hierarchy');
+    const btnVault = document.getElementById('btn-vault');
+
+    if (!isLoggedIn) {
+        if (btnMembers) btnMembers.style.display = 'none';
+        if (btnHierarchy) btnHierarchy.style.display = 'none';
+        if (btnVault) btnVault.style.display = 'none';
+
+        // Reset illegal mode if active
+        if (isIllegalUnlocked) {
+            isIllegalUnlocked = false;
+            currentIllegalMember = null;
+            const normalNav = document.getElementById('normalNav');
+            const illegalNav = document.getElementById('illegalNav');
+            if (normalNav) normalNav.style.display = 'block';
+            if (illegalNav) illegalNav.style.display = 'none';
+            document.body.classList.remove('theme-gold');
+        }
+
+        // Redirect if on restricted category
+        if (['members', 'hierarchy', 'vault', 'illegal-recipes', 'illegal-actions', 'illegal-hierarchy', 'illegal-boosting', 'illegal-cars'].includes(currentCategory)) {
+            switchCategory('home');
+        }
+    } else {
+        if (btnMembers) btnMembers.style.display = 'flex';
+        if (btnHierarchy) btnHierarchy.style.display = 'flex';
+        if (btnVault) btnVault.style.display = 'flex';
+    }
     
     // Header add button depending on category permissions
     if (addNewItemBtn) {
