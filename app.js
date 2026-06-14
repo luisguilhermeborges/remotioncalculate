@@ -233,6 +233,14 @@ function updateStatusBadge(status) {
         dbStatusBadge.classList.add('status-local');
         text.textContent = 'Modo Local';
     }
+
+    if (db.isAdminLoggedIn()) {
+        dbStatusBadge.style.cursor = 'pointer';
+        dbStatusBadge.title = 'Configurar Supabase';
+    } else {
+        dbStatusBadge.style.cursor = 'default';
+        dbStatusBadge.removeAttribute('title');
+    }
 }
 
 // ─── PERMISSION CHECK ─────────────────────────────────────────────────────
@@ -2032,6 +2040,7 @@ function calculateTotals() {
 
 // ─── AUTHENTICATION FLOW UI UPDATES ───────────────────────────────────────
 function updateAuthUI() {
+    updateStatusBadge(db.isConnected() ? 'online' : 'local');
     const isLoggedIn = db.isAdminLoggedIn() || currentLoggedInMember !== null;
     const isAdminMode = db.isAdminLoggedIn() || (currentLoggedInMember && (currentLoggedInMember.role.toLowerCase() === 'gerente' || currentLoggedInMember.role.toLowerCase() === 'night boss' || currentLoggedInMember.role.toLowerCase() === 'owner'));
 
@@ -2285,6 +2294,7 @@ if (authTabLogin && authTabRegister) {
 
 if (dbStatusBadge) {
     dbStatusBadge.addEventListener('click', () => {
+        if (!db.isAdminLoggedIn()) return;
         const config = db.getConnectionInfo();
         document.getElementById('configUrl').value = config.url;
         document.getElementById('configKey').value = config.anonKey;

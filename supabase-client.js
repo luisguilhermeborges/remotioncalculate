@@ -29,20 +29,21 @@ window.safeStorage = safeStorage;
 
 let supabaseInstance = null;
 
-// Load config from safeStorage
-const getSupabaseConfig = () => {
-    return {
-        url: safeStorage.getItem('supabase_url') || '',
-        anonKey: safeStorage.getItem('supabase_anon_key') || ''
-    };
-};
+// ─── SUPABASE CREDENTIALS (hardcoded) ─────────────────────────────────────
+const SUPABASE_URL     = 'https://dypgjfmvtvxgpdtnnwog.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR5cGdqZm12dHZ4Z3BkdG5ud29nIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE0NTExMTMsImV4cCI6MjA5NzAyNzExM30.0RWv_HzitLjSXmlqH1YFpRIvTBDlSX7SWEJ0AbqGzmk';
 
-// Initialize Supabase if credentials are provided
+// Load config — always uses hardcoded credentials
+const getSupabaseConfig = () => ({
+    url: SUPABASE_URL,
+    anonKey: SUPABASE_ANON_KEY
+});
+
+// Initialize Supabase automatically on load
 const initSupabase = () => {
-    const config = getSupabaseConfig();
-    if (config.url && config.anonKey && window.supabase) {
+    if (window.supabase) {
         try {
-            supabaseInstance = window.supabase.createClient(config.url, config.anonKey);
+            supabaseInstance = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
             console.log("Supabase Client initialized successfully.");
         } catch (e) {
             console.error("Error initializing Supabase client:", e);
