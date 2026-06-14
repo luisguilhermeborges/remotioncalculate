@@ -2558,6 +2558,11 @@ button[onclick*="openImpoundedCarModal"] {
     transform: translateY(-2px);
 }
 
+/* Show member card actions in edit mode */
+.edit-mode-active .member-card-actions {
+    display: grid !important;
+}
+
 /* Illegal Gold theme (Yellow/Gold) */
 .edit-mode-active.theme-gold .quick-service-card,
 .edit-mode-active.theme-gold .recipe-card,
