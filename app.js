@@ -2159,11 +2159,6 @@ document.querySelectorAll('.modal-close-btn').forEach(btn => {
     });
 });
 
-window.addEventListener('click', (e) => {
-    if (e.target.classList.contains('modal-overlay')) {
-        hideModal(e.target);
-    }
-});
 
 // ─── LOGIN & CONFIG SUBMISSIONS ───────────────────────────────────────────
 if (btnLoginToggle) {
