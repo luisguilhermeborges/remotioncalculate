@@ -681,9 +681,8 @@ function renderMembersScreen(searchTerm = '') {
         const initial = m.name ? m.name.charAt(0).toUpperCase() : '?';
         const dateStr = m.joinDate;
         
-        // Define tags
         const isIlegalTag = (m.flagIlegal && hasIllegalAccess) 
-            ? `<span class="member-status-label" style="background:rgba(245,158,11,0.08); border-color:rgba(245,158,11,0.2); color:#f59e0b; margin-left:6px;">ILEGAL${m.illegalRole ? `: ${m.illegalRole.toUpperCase()}` : ''}</span>` 
+            ? `<span class="member-status-label" style="background:rgba(245,158,11,0.08); border-color:rgba(245,158,11,0.2); color:#f59e0b; margin-left:6px;">ILEGAL</span>` 
             : '';
 
         return `
