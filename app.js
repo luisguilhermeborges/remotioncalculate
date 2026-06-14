@@ -2218,7 +2218,6 @@ if (formRegister) {
         const phone = document.getElementById('regPhone').value.trim();
         const password = document.getElementById('regPassword').value;
         const errorEl = document.getElementById('regErrorMsg');
-        const isAgregado = document.getElementById('regIsAgregado') ? document.getElementById('regIsAgregado').checked : false;
 
         errorEl.style.display = 'none';
 
@@ -2230,21 +2229,21 @@ if (formRegister) {
             return;
         }
 
-        const newPending = {
+        const newMember = {
             id: 'mem_' + Date.now(),
             name: name,
             passport: passport,
             phone: phone,
-            role: isAgregado ? 'Agregado' : 'Runner', // default starter role or Agregado
+            role: 'Runner',
             joinDate: new Date().toLocaleDateString('pt-BR'),
-            status: 'Pendente',
+            status: 'Ativo',
             password: password,
-            flagIlegal: isAgregado,
-            illegalRole: isAgregado ? 'Novato' : ''
+            flagIlegal: false,
+            illegalRole: ''
         };
 
-        await db.saveMember(newPending);
-        alert("Solicitação de cadastro enviada! Aguarde aprovação.");
+        await db.saveMember(newMember);
+        alert(`Conta criada com sucesso! Faça login com seu passaporte e senha.`);
         hideModal(modalLogin);
         formRegister.reset();
         await loadData();
