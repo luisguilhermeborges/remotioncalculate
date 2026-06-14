@@ -251,13 +251,24 @@ function hasPermission(permissionName) {
     // Check active member session
     const activeUser = currentLoggedInMember || (isIllegalUnlocked ? currentIllegalMember : null);
     if (activeUser) {
-        // Boss/Gerente master override
-        if (activeUser.role.toLowerCase() === 'gerente' || activeUser.role.toLowerCase() === 'night boss' || activeUser.role.toLowerCase() === 'owner') {
+        const userRoles = activeUser.role ? activeUser.role.split(',').map(r => r.trim().toLowerCase()) : [];
+        const illegalRoles = activeUser.illegalRole ? activeUser.illegalRole.split(',').map(r => r.trim().toLowerCase()) : [];
+
+        // Master overrides for high ranks
+        if (userRoles.includes('gerente') || 
+            userRoles.includes('ceo') || 
+            userRoles.includes('vice presidente') || 
+            userRoles.includes('owner') || 
+            illegalRoles.includes('gerencia')) {
             return true;
         }
-        const role = activeRoles.find(r => r.name === activeUser.role);
-        if (role && role.permissions && role.permissions.includes(permissionName)) {
-            return true;
+
+        // Check permissions for all legal roles
+        for (const roleName of userRoles) {
+            const role = activeRoles.find(r => r.name.toLowerCase() === roleName);
+            if (role && role.permissions && role.permissions.includes(permissionName)) {
+                return true;
+            }
         }
     }
     return false;
@@ -617,7 +628,7 @@ function renderMembersScreen(searchTerm = '') {
                                         <label style="font-size:0.75rem; color:var(--white-muted); display:block; margin-bottom:4px;">Atribuir Cargo Mecânica</label>
                                         <select id="assign-role-${p.id}" style="width:100%; padding:6px; background:var(--black-card); border:1px solid var(--border-dark); border-radius:4px; color:var(--white-main); font-size:0.8rem;">
                                             ${activeRoles.map(r => `<option value="${r.name}" ${p.role === r.name ? 'selected' : ''}>${r.name}</option>`).join('')}
-                                            <option value="Runner" ${p.role === 'Runner' ? 'selected' : ''}>Runner</option>
+                                            <option value="Estagiario" ${p.role === 'Estagiario' ? 'selected' : ''}>Estagiario</option>
                                             <option value="Agregado" ${p.role === 'Agregado' ? 'selected' : ''}>Agregado (Somente Ilegal)</option>
                                         </select>
                                     </div>
@@ -626,11 +637,13 @@ function renderMembersScreen(searchTerm = '') {
                                             <input type="checkbox" id="assign-illegal-${p.id}" ${p.flagIlegal ? 'checked' : ''} style="accent-color:#f59e0b;" onchange="window.toggleAssignIllegalSelect('${p.id}')"> Habilitar Flag Ilegal
                                         </label>
                                         <select id="assign-illegal-role-${p.id}" style="padding:4px; background:var(--black-card); border:1px solid var(--border-dark); border-radius:4px; color:#f59e0b; font-size:0.75rem; display:${p.flagIlegal ? 'block' : 'none'};">
-                                            <option value="Novato" ${p.illegalRole === 'Novato' ? 'selected' : ''}>Novato</option>
-                                            <option value="Soldado" ${p.illegalRole === 'Soldado' ? 'selected' : ''}>Soldado</option>
-                                            <option value="Sub-Leader" ${p.illegalRole === 'Sub-Leader' ? 'selected' : ''}>Sub-Leader</option>
-                                            <option value="Leader" ${p.illegalRole === 'Leader' ? 'selected' : ''}>Leader</option>
-                                        </select>
+                                             <option value="Membro" ${p.illegalRole.includes('Membro') ? 'selected' : ''}>Membro</option>
+                                             <option value="Racer" ${p.illegalRole.includes('Racer') ? 'selected' : ''}>Racer</option>
+                                             <option value="Boosting" ${p.illegalRole.includes('Boosting') ? 'selected' : ''}>Boosting</option>
+                                             <option value="Probatorio" ${p.illegalRole.includes('Probatorio') ? 'selected' : ''}>Probatorio</option>
+                                             <option value="Designer" ${p.illegalRole.includes('Designer') ? 'selected' : ''}>Designer</option>
+                                             <option value="Gerencia" ${p.illegalRole.includes('Gerencia') ? 'selected' : ''}>Gerencia</option>
+                                         </select>
                                     </div>
                                 </div>
 
@@ -799,7 +812,11 @@ function renderHierarchyScreen() {
     } else {
         activeRoles.forEach(role => {
             if (role.name === 'Agregado') return;
-            const membersOfRole = activeMembers.filter(m => m.role === role.name && m.status === 'Ativo' && m.role !== 'Agregado' && !m.isAgregado);
+            const membersOfRole = activeMembers.filter(m => {
+                if (!m.role || m.status !== 'Ativo') return false;
+                const roles = m.role.split(',').map(r => r.trim().toLowerCase());
+                return roles.includes(role.name.toLowerCase());
+            });
             
             hierarchyHtml += `
                 <div class="hierarchy-group">
@@ -818,10 +835,15 @@ function renderHierarchyScreen() {
                         Nenhum membro ativo cadastrado neste cargo.
                     </p>`;
             } else {
+                const loggedInRoles = currentLoggedInMember && currentLoggedInMember.role 
+                    ? currentLoggedInMember.role.split(',').map(r => r.trim().toLowerCase()) 
+                    : [];
                 const isCEO = db.isAdminLoggedIn() || (currentLoggedInMember && (
-                    currentLoggedInMember.role.toLowerCase() === 'ceo' || 
-                    currentLoggedInMember.role.toLowerCase() === 'owner' || 
-                    currentLoggedInMember.role.toLowerCase() === 'night boss'
+                    loggedInRoles.includes('ceo') || 
+                    loggedInRoles.includes('vice presidente') || 
+                    loggedInRoles.includes('gerente') || 
+                    loggedInRoles.includes('owner') || 
+                    loggedInRoles.includes('night boss')
                 ));
 
                 membersOfRole.forEach(m => {
@@ -1584,25 +1606,22 @@ function renderIllegalHierarchy() {
     let hierarchyHtml = '<div class="hierarchy-container">';
     
     // Sort ranks for illegal hierarchy
-    const illegalRoles = ['Leader', 'Sub-Leader', 'Soldado', 'Novato'];
+    const illegalRoles = ['Gerencia', 'Designer', 'Racer', 'Boosting', 'Membro', 'Probatorio'];
     const icons = {
-        'Leader': 'fa-solid fa-crown',
-        'Sub-Leader': 'fa-solid fa-shield',
-        'Soldado': 'fa-solid fa-bolt',
-        'Novato': 'fa-solid fa-star'
+        'Gerencia': 'fa-solid fa-crown',
+        'Designer': 'fa-solid fa-palette',
+        'Racer': 'fa-solid fa-gauge-high',
+        'Boosting': 'fa-solid fa-car',
+        'Membro': 'fa-solid fa-user-group',
+        'Probatorio': 'fa-solid fa-user-clock'
     };
 
     illegalRoles.forEach(roleName => {
-        // Group by custom illegal tag/rank. Since roles are basic, we can map activeMembers role or just roleName
-        // To keep it simple: group members by their matched illegal level
         const membersOfLevel = illegalMembers.filter(m => {
             if (m.illegalRole) {
-                return m.illegalRole === roleName;
+                const roles = m.illegalRole.split(',').map(r => r.trim().toLowerCase());
+                return roles.includes(roleName.toLowerCase());
             }
-            if (roleName === 'Leader' && (m.role.includes('Boss') || m.role === 'Night Boss' || m.role === 'Under Boss')) return true;
-            if (roleName === 'Sub-Leader' && (m.role === 'Gerente' || m.role === 'Chefe')) return true;
-            if (roleName === 'Soldado' && m.role === 'Racer') return true;
-            if (roleName === 'Novato' && m.role === 'Runner') return true;
             return false;
         });
 
@@ -2274,7 +2293,7 @@ if (formRegister) {
             name: name,
             passport: passport,
             phone: phone,
-            role: 'Runner',
+            role: 'Estagiario',
             joinDate: new Date().toLocaleDateString('pt-BR'),
             status: 'Ativo',
             password: password,
@@ -2992,13 +3011,27 @@ window.openMemberEditModal = function(memberId = '') {
     const titleEl = document.getElementById('memberModalTitle');
     const deleteBtn = document.getElementById('btnDeleteMember');
 
-    // Populate role list dropdown based on created roles list + Agregado
-    const roleSel = document.getElementById('editMemberRole');
-    const rolesForDropdown = activeRoles.length > 0 ? activeRoles : [
-        { name: 'Night Boss' }, { name: 'Under Boss' }, { name: 'Gerente' },
-        { name: 'Racer' }, { name: 'Runner' }
+    // Populate legal roles checklist
+    const rolesList = activeRoles.length > 0 ? activeRoles : [
+        { name: 'CEO' }, { name: 'Vice Presidente' }, { name: 'Gerente' },
+        { name: 'Mecanico Senior' }, { name: 'Mecanico Pleno' }, { name: 'Mecanico Junior' },
+        { name: 'Estagiario' }
     ];
-    roleSel.innerHTML = rolesForDropdown.map(r => `<option value="${r.name}">${r.name}</option>`).join('') + `<option value="Agregado">Agregado (Somente Ilegal)</option>`;
+    const rolesContainer = document.getElementById('editMemberRolesContainer');
+    rolesContainer.innerHTML = rolesList.map(r => `
+        <label style="display:flex; align-items:center; gap:8px; font-size:0.85rem; color:var(--white-main); cursor:pointer;">
+            <input type="checkbox" class="edit-member-role-cb" value="${r.name}" style="accent-color:var(--red-primary);"> ${r.name}
+        </label>
+    `).join('');
+
+    // Populate illegal roles checklist
+    const illegalRolesList = ['Gerencia', 'Designer', 'Racer', 'Boosting', 'Membro', 'Probatorio'];
+    const illegalRolesContainer = document.getElementById('editMemberIllegalRolesContainer');
+    illegalRolesContainer.innerHTML = illegalRolesList.map(r => `
+        <label style="display:flex; align-items:center; gap:8px; font-size:0.85rem; color:var(--white-main); cursor:pointer;">
+            <input type="checkbox" class="edit-member-illegal-role-cb" value="${r}" style="accent-color:#f59e0b;"> ${r}
+        </label>
+    `).join('');
 
     if (memberId) {
         titleEl.innerHTML = `<i class="fa-solid fa-user-pen"></i> Editar Membro`;
@@ -3008,18 +3041,26 @@ window.openMemberEditModal = function(memberId = '') {
         if (member) {
             document.getElementById('editMemberId').value = member.id;
             document.getElementById('editMemberName').value = member.name;
-            document.getElementById('editMemberRole').value = member.role;
             document.getElementById('editMemberStatus').value = member.status;
             document.getElementById('editMemberPassport').value = member.passport;
             document.getElementById('editMemberPhone').value = member.phone;
             document.getElementById('editMemberJoinDate').value = member.joinDate;
             
+            // Set checkboxes for legal roles
+            const userRoles = member.role ? member.role.split(',').map(r => r.trim().toLowerCase()) : [];
+            document.querySelectorAll('.edit-member-role-cb').forEach(cb => {
+                cb.checked = userRoles.includes(cb.value.toLowerCase());
+            });
+
             const hasIllegal = !!member.flagIlegal;
             document.getElementById('editMemberIlegal').checked = hasIllegal;
             document.getElementById('editMemberIllegalRoleGroup').style.display = hasIllegal ? 'block' : 'none';
-            if (member.illegalRole) {
-                document.getElementById('editMemberIllegalRole').value = member.illegalRole;
-            }
+
+            // Set checkboxes for illegal roles
+            const userIllegalRoles = member.illegalRole ? member.illegalRole.split(',').map(r => r.trim().toLowerCase()) : [];
+            document.querySelectorAll('.edit-member-illegal-role-cb').forEach(cb => {
+                cb.checked = userIllegalRoles.includes(cb.value.toLowerCase());
+            });
         }
     } else {
         titleEl.innerHTML = `<i class="fa-solid fa-user-plus"></i> Adicionar Membro`;
@@ -3027,6 +3068,11 @@ window.openMemberEditModal = function(memberId = '') {
         document.getElementById('editMemberId').value = '';
         document.getElementById('editMemberJoinDate').value = new Date().toISOString().substring(0, 10);
         document.getElementById('editMemberIllegalRoleGroup').style.display = 'none';
+
+        // Select Estagiario as default for new members
+        document.querySelectorAll('.edit-member-role-cb').forEach(cb => {
+            cb.checked = cb.value.toLowerCase() === 'estagiario';
+        });
     }
     showModal(modalMemberEdit);
 };
@@ -3035,16 +3081,21 @@ if (formMemberEdit) {
     formMemberEdit.addEventListener('submit', async (e) => {
         e.preventDefault();
         const flagIlegal = document.getElementById('editMemberIlegal').checked;
+        
+        // Collect checked roles
+        const selectedRoles = Array.from(document.querySelectorAll('.edit-member-role-cb:checked')).map(cb => cb.value).join(', ');
+        const selectedIllegalRoles = Array.from(document.querySelectorAll('.edit-member-illegal-role-cb:checked')).map(cb => cb.value).join(', ');
+
         const member = {
             id: document.getElementById('editMemberId').value || 'm_' + Date.now(),
             name: document.getElementById('editMemberName').value,
-            role: document.getElementById('editMemberRole').value,
+            role: selectedRoles || 'Estagiario',
             status: document.getElementById('editMemberStatus').value,
             passport: document.getElementById('editMemberPassport').value,
             phone: document.getElementById('editMemberPhone').value,
             joinDate: document.getElementById('editMemberJoinDate').value,
             flagIlegal: flagIlegal,
-            illegalRole: flagIlegal ? document.getElementById('editMemberIllegalRole').value : ''
+            illegalRole: flagIlegal ? selectedIllegalRoles : ''
         };
 
         await db.saveMember(member);

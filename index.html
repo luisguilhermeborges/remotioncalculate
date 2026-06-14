@@ -419,14 +419,11 @@
                     <input type="text" id="editMemberName" required placeholder="Ex: Joãozinho Silva Sauro">
                 </div>
                 <div class="form-row">
-                    <div class="form-group">
-                        <label for="editMemberRole">Cargo / Nível</label>
-                        <select id="editMemberRole" required>
-                            <option value="CEO">CEO</option>
-                            <option value="Gerente">Gerente</option>
-                            <option value="Mecanico">Mecanico</option>
-                            <option value="Estagiario">Estagiario</option>
-                        </select>
+                    <div class="form-group" style="flex: 1;">
+                        <label>Cargos Mecânica (Legal)</label>
+                        <div id="editMemberRolesContainer" style="display: flex; flex-direction: column; gap: 6px; padding: 10px; background: var(--black-card); border: 1px solid var(--border-dark); border-radius: 4px; max-height: 160px; overflow-y: auto;">
+                            <!-- Checkboxes will be injected dynamically -->
+                        </div>
                     </div>
                     <div class="form-group">
                         <label for="editMemberStatus">Status</label>
@@ -458,13 +455,10 @@
                             (Acesso à Área Ilegal)</label>
                     </div>
                     <div class="form-group" id="editMemberIllegalRoleGroup" style="margin: 0; flex: 1; display: none;">
-                        <label for="editMemberIllegalRole" style="font-size:0.75rem; color:var(--white-muted); margin-bottom:2px;">Cargo/Nível Ilegal</label>
-                        <select id="editMemberIllegalRole" style="width:100%; padding:6px; background:var(--black-card); border:1px solid var(--border-dark); border-radius:4px; color:#f59e0b; font-size:0.8rem;">
-                            <option value="Novato">Novato</option>
-                            <option value="Soldado">Soldado</option>
-                            <option value="Sub-Leader">Sub-Leader</option>
-                            <option value="Leader">Leader</option>
-                        </select>
+                        <label style="font-size:0.75rem; color:var(--white-muted); margin-bottom:2px;">Cargos Ilicítos</label>
+                        <div id="editMemberIllegalRolesContainer" style="display: flex; flex-direction: column; gap: 6px; padding: 10px; background: var(--black-card); border: 1px solid var(--border-dark); border-radius: 4px; max-height: 160px; overflow-y: auto;">
+                            <!-- Checkboxes will be injected dynamically -->
+                        </div>
                     </div>
                 </div>
                 <div class="modal-footer" style="padding-left:0; padding-right:0;">

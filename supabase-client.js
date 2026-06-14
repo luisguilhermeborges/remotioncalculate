@@ -70,13 +70,19 @@ const initLocalStorageFallback = () => {
 
     // Seeding roles/cargos and permissions list
     const defaultRoles = [
-        { id: 'r_nightboss', name: 'Night Boss', permissions: ['view_stages', 'edit_stages', 'view_services', 'edit_services', 'view_products', 'edit_products', 'view_members', 'edit_members', 'access_vault', 'access_illegal', 'manage_roles'] },
-        { id: 'r_underboss', name: 'Under Boss', permissions: ['view_stages', 'edit_stages', 'view_services', 'edit_services', 'view_products', 'edit_products', 'view_members', 'edit_members', 'access_vault', 'access_illegal'] },
-        { id: 'r_gerente', name: 'Gerente', permissions: ['view_stages', 'edit_stages', 'view_services', 'edit_services', 'view_products', 'edit_products', 'view_members', 'edit_members', 'access_vault', 'access_illegal'] },
-        { id: 'r_racer', name: 'Racer', permissions: ['view_stages', 'view_services', 'view_products', 'view_members', 'access_vault'] },
-        { id: 'r_runner', name: 'Runner', permissions: ['view_stages', 'view_services', 'view_products'] }
+        { id: 'r_ceo', name: 'CEO', permissions: ['view_stages', 'edit_stages', 'view_services', 'edit_services', 'view_products', 'edit_products', 'view_members', 'edit_members', 'access_vault', 'access_illegal', 'manage_roles'] },
+        { id: 'r_vice', name: 'Vice Presidente', permissions: ['view_stages', 'edit_stages', 'view_services', 'edit_services', 'view_products', 'edit_products', 'view_members', 'edit_members', 'access_vault', 'access_illegal', 'manage_roles'] },
+        { id: 'r_gerente', name: 'Gerente', permissions: ['view_stages', 'edit_stages', 'view_services', 'edit_services', 'view_products', 'edit_products', 'view_members', 'edit_members', 'access_vault', 'access_illegal', 'manage_roles'] },
+        { id: 'r_senior', name: 'Mecanico Senior', permissions: ['view_stages', 'view_services', 'view_products', 'view_members', 'access_vault'] },
+        { id: 'r_pleno', name: 'Mecanico Pleno', permissions: ['view_stages', 'view_services', 'view_products', 'view_members', 'access_vault'] },
+        { id: 'r_junior', name: 'Mecanico Junior', permissions: ['view_stages', 'view_services', 'view_products', 'view_members'] },
+        { id: 'r_estagiario', name: 'Estagiario', permissions: ['view_stages', 'view_services', 'view_products'] }
     ];
-    seedIfEmpty('roles_local', defaultRoles);
+    const ROLES_SEED_VERSION = 'v3_legal_illegal_roles';
+    if (safeStorage.getItem('roles_seed_version') !== ROLES_SEED_VERSION) {
+        safeStorage.setItem('roles_local', JSON.stringify(defaultRoles));
+        safeStorage.setItem('roles_seed_version', ROLES_SEED_VERSION);
+    }
 
     // Seeding default illegal recipes matching uploaded screenshots
     const defaultIllegalRecipes = [
