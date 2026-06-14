@@ -591,8 +591,8 @@ function renderMembersScreen(searchTerm = '') {
     const hasIllegalAccess = db.isAdminLoggedIn() || 
                              (currentLoggedInMember && (currentLoggedInMember.flagIlegal || hasPermission('access_illegal')));
 
-    // Filter actives: if not hasIllegalAccess, hide Agregado members
-    const visibleActives = actives.filter(m => hasIllegalAccess || (m.role !== 'Agregado' && !m.isAgregado));
+    // Filter actives: do not show Agregado (illegal-only) members on the legal list
+    const visibleActives = actives.filter(m => m.role && m.role !== 'Agregado' && m.role !== '' && !m.isAgregado);
 
     // Filter actives by search term
     const filteredActives = visibleActives.filter(m => 
@@ -3044,6 +3044,7 @@ window.openMemberEditModal = function(memberId = '') {
             document.getElementById('editMemberPassport').value = member.passport;
             document.getElementById('editMemberPhone').value = member.phone;
             document.getElementById('editMemberJoinDate').value = member.joinDate;
+            document.getElementById('editMemberAvatarUrl').value = member.avatarUrl || '';
             
             // Set checkboxes for legal roles
             const userRoles = member.role ? member.role.split(',').map(r => r.trim().toLowerCase()) : [];
@@ -3066,6 +3067,7 @@ window.openMemberEditModal = function(memberId = '') {
         deleteBtn.style.display = 'none';
         document.getElementById('editMemberId').value = '';
         document.getElementById('editMemberJoinDate').value = new Date().toISOString().substring(0, 10);
+        document.getElementById('editMemberAvatarUrl').value = '';
         document.getElementById('editMemberIllegalRoleGroup').style.display = 'none';
 
         // Select Estagiario as default for new members
@@ -3088,7 +3090,7 @@ if (formMemberEdit) {
         const member = {
             id: document.getElementById('editMemberId').value || 'm_' + Date.now(),
             name: document.getElementById('editMemberName').value,
-            role: selectedRoles || 'Estagiario',
+            role: selectedRoles || 'Agregado',
             status: document.getElementById('editMemberStatus').value,
             passport: document.getElementById('editMemberPassport').value,
             phone: document.getElementById('editMemberPhone').value,
