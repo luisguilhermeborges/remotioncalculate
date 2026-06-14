@@ -314,7 +314,20 @@ const db = {
     getMembers: async () => {
         if (supabaseInstance) {
             const { data, error } = await supabaseInstance.from('members').select('*');
-            if (!error && data) return data;
+            if (!error && data) {
+                return data.map(m => ({
+                    id: m.id,
+                    name: m.name,
+                    passport: m.passport,
+                    phone: m.phone,
+                    role: m.role,
+                    joinDate: m.join_date,
+                    status: m.status,
+                    password: m.password,
+                    flagIlegal: m.flag_ilegal,
+                    illegalRole: m.illegal_role
+                }));
+            }
             console.warn("Supabase members error, using local storage", error);
         }
         return JSON.parse(safeStorage.getItem('members_local') || '[]');
@@ -322,7 +335,19 @@ const db = {
 
     saveMember: async (member) => {
         if (supabaseInstance) {
-            const { error } = await supabaseInstance.from('members').upsert(member);
+            const dbMember = {
+                id: member.id,
+                name: member.name,
+                passport: member.passport,
+                phone: member.phone,
+                role: member.role,
+                join_date: member.joinDate,
+                status: member.status,
+                password: member.password,
+                flag_ilegal: member.flagIlegal,
+                illegal_role: member.illegalRole
+            };
+            const { error } = await supabaseInstance.from('members').upsert(dbMember);
             if (!error) return true;
             console.error("Supabase error saving member:", error);
         }
@@ -335,9 +360,9 @@ const db = {
     },
 
     memberLogin: async (passportOrEmail, password) => {
-        // Load members list
-        const locals = JSON.parse(safeStorage.getItem('members_local') || '[]');
-        const member = locals.find(m => (m.passport === passportOrEmail || m.email === passportOrEmail) && m.password === password);
+        // Load members list (queries Supabase if connected)
+        const membersList = await db.getMembers();
+        const member = membersList.find(m => (m.passport === passportOrEmail || m.email === passportOrEmail) && m.password === password);
         if (!member) {
             return { success: false, error: 'Usuário ou senha incorretos.' };
         }
