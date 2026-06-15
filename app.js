@@ -2403,20 +2403,21 @@ function updateAuthUI() {
                                      (currentLoggedInMember && (currentLoggedInMember.flagIlegal || hasPermission('access_illegal')));
             
             if (isIllegalUnlocked || hasIllegalAccess) {
-            btnToggleIllegal.style.display = 'flex';
-            if (isIllegalUnlocked) {
-                btnToggleIllegal.innerHTML = `<i class="fa-solid fa-mask"></i> Voltar p/ Oficina`;
-                btnToggleIllegal.style.background = 'rgba(239, 68, 68, 0.08)';
-                btnToggleIllegal.style.borderColor = 'rgba(239, 68, 68, 0.25)';
-                btnToggleIllegal.style.color = '#ef4444';
+                btnToggleIllegal.style.display = 'flex';
+                if (isIllegalUnlocked) {
+                    btnToggleIllegal.innerHTML = `<i class="fa-solid fa-mask"></i> Voltar p/ Oficina`;
+                    btnToggleIllegal.style.background = 'rgba(239, 68, 68, 0.08)';
+                    btnToggleIllegal.style.borderColor = 'rgba(239, 68, 68, 0.25)';
+                    btnToggleIllegal.style.color = '#ef4444';
+                } else {
+                    btnToggleIllegal.innerHTML = `<i class="fa-solid fa-mask"></i> Área Ilegal`;
+                    btnToggleIllegal.style.background = 'rgba(245, 158, 11, 0.05)';
+                    btnToggleIllegal.style.borderColor = 'rgba(245, 158, 11, 0.25)';
+                    btnToggleIllegal.style.color = '#f59e0b';
+                }
             } else {
-                btnToggleIllegal.innerHTML = `<i class="fa-solid fa-mask"></i> Área Ilegal`;
-                btnToggleIllegal.style.background = 'rgba(245, 158, 11, 0.05)';
-                btnToggleIllegal.style.borderColor = 'rgba(245, 158, 11, 0.25)';
-                btnToggleIllegal.style.color = '#f59e0b';
+                btnToggleIllegal.style.display = 'none';
             }
-        } else {
-            btnToggleIllegal.style.display = 'none';
         }
     }
 
