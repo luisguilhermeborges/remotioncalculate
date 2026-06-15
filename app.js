@@ -2746,6 +2746,32 @@ if (formVaultLog) {
 }
 
 // ─── ILEGAL DASHBOARD SECURITY & ACTIONS SUBMISSIONS ──────────────────────
+function activateIllegalArea() {
+    isIllegalUnlocked = true;
+    currentIllegalMember = currentLoggedInMember || null;
+
+    // Activate Gold Theme
+    document.body.classList.add('theme-gold');
+
+    // Change Brand header to SECRET
+    const brandLogo = document.querySelector('.brand-logo');
+    const brandTagline = document.querySelector('.brand-tagline');
+    if (brandLogo) {
+        brandLogo.innerHTML = '<span class="brand-re" style="color:#f59e0b;">SECRET</span>';
+    }
+    if (brandTagline) {
+        brandTagline.textContent = 'Criminal Operations';
+    }
+
+    // Toggle sidebar navs
+    document.getElementById('normalNav').style.display = 'none';
+    document.getElementById('illegalNav').style.display = 'flex';
+
+    // Direct navigation to illegal recipes category tab
+    switchCategory('illegal-recipes');
+    updateAuthUI();
+}
+
 if (btnToggleIllegal) {
     btnToggleIllegal.addEventListener('click', () => {
         if (isIllegalUnlocked) {
@@ -2753,7 +2779,7 @@ if (btnToggleIllegal) {
             isIllegalUnlocked = false;
             currentIllegalMember = null;
             document.body.classList.remove('theme-gold');
-            
+
             // Restore Brand header
             const brandLogo = document.querySelector('.brand-logo');
             const brandTagline = document.querySelector('.brand-tagline');
@@ -2771,52 +2797,10 @@ if (btnToggleIllegal) {
             // Switch view back to home
             const homeBtn = document.getElementById('btn-home');
             if (homeBtn) homeBtn.click();
+            updateAuthUI();
         } else {
-            document.getElementById('illegalAuthErrorMsg').style.display = 'none';
-            formIllegalAuth.reset();
-            showModal(modalIllegalAuth);
-        }
-    });
-}
-
-if (formIllegalAuth) {
-    formIllegalAuth.addEventListener('submit', (e) => {
-        e.preventDefault();
-        const passport = document.getElementById('illegalPassportInput').value.trim();
-        const enteredPassword = document.getElementById('illegalPasswordInputVal').value;
-        const errorMsg = document.getElementById('illegalAuthErrorMsg');
-
-        // Look for member
-        const member = activeMembers.find(m => m.passport === passport);
-        if (member && member.flagIlegal && member.password && enteredPassword && member.password.toLowerCase() === enteredPassword.toLowerCase()) {
-            isIllegalUnlocked = true;
-            currentIllegalMember = member;
-            
-            // Activate Gold Theme
-            document.body.classList.add('theme-gold');
-
-            // Change Brand header to SECRET
-            const brandLogo = document.querySelector('.brand-logo');
-            const brandTagline = document.querySelector('.brand-tagline');
-            if (brandLogo) {
-                brandLogo.innerHTML = '<span class="brand-re" style="color:#f59e0b;">SECRET</span>';
-            }
-            if (brandTagline) {
-                brandTagline.textContent = 'Criminal Operations';
-            }
-            
-            // Toggle sidebar navs
-            document.getElementById('normalNav').style.display = 'none';
-            document.getElementById('illegalNav').style.display = 'flex';
-
-            hideModal(modalIllegalAuth);
-            formIllegalAuth.reset();
-
-            // Direct navigation to illegal recipes category tab
-            switchCategory('illegal-recipes');
-        } else {
-            errorMsg.textContent = "Acesso Negado. Passaporte ou senha inválidos, ou sem flag ilegal.";
-            errorMsg.style.display = 'block';
+            // Enter illegal area directly — no password required
+            activateIllegalArea();
         }
     });
 }
