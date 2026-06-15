@@ -162,7 +162,10 @@ const categoryMeta = {
     'illegal-actions':   { title: 'Ações Disponíveis',            subtitle: 'Planejamento e início de ações da facção' },
     'illegal-hierarchy': { title: 'Hierarquia Ilegal',            subtitle: 'Estrutura de comando do crime organizado' },
     'illegal-boosting':  { title: 'Boosting & Fuga',              subtitle: 'Informações de bypass e bloqueios ativos' },
-    'illegal-cars':      { title: 'Carros Detidos',              subtitle: 'Cadastro de veículos apreendidos' }
+    'illegal-cars':      { title: 'Carros Detidos',              subtitle: 'Cadastro de veículos apreendidos' },
+    'illegal-mural':     { title: 'Mural Ilegal',                 subtitle: 'Avisos e comunicados da facção' },
+    lives:               { title: 'Lives do Pessoal',             subtitle: 'Assista às transmissões ao vivo da equipe' },
+    'illegal-lives':     { title: 'Transmissões da Facção',        subtitle: 'Canais de live ativos dos membros' }
 };
 
 // ─── DATA SYNC & FLOW ─────────────────────────────────────────────────────
@@ -244,6 +247,36 @@ function updateStatusBadge(status) {
 }
 
 // ─── PERMISSION CHECK ─────────────────────────────────────────────────────
+function getMemberHighestRole(member) {
+    if (!member || !member.role) return 'Estagiario';
+    const roles = member.role.split(',').map(r => r.trim().toLowerCase());
+    const legalOrder = ['ceo', 'vice presidente', 'gerente', 'mecanico senior', 'mecanico pleno', 'mecanico junior', 'estagiario'];
+    for (const r of legalOrder) {
+        if (roles.includes(r)) {
+            const found = activeRoles.find(ar => ar.name.toLowerCase() === r);
+            return found ? found.name : (r.charAt(0).toUpperCase() + r.slice(1));
+        }
+    }
+    return 'Estagiario';
+}
+
+function getMemberHighestIllegalRole(member) {
+    if (!member || !member.illegalRole) return 'Membro';
+    const roles = member.illegalRole.split(',').map(r => r.trim().toLowerCase());
+    const illegalOrder = ['01', 'gerente', 'corredor', 'membro', 'probatorio'];
+    for (const r of illegalOrder) {
+        if (roles.includes(r)) {
+            if (r === '01') return '01';
+            if (r === 'gerente') return 'Gerente';
+            if (r === 'corredor') return 'Corredor';
+            if (r === 'membro') return 'Membro';
+            if (r === 'probatorio') return 'Probatorio';
+            return r.charAt(0).toUpperCase() + r.slice(1);
+        }
+    }
+    return 'Membro';
+}
+
 function hasPermission(permissionName) {
     // Admin bypass
     if (db.isAdminLoggedIn()) return true;
@@ -259,7 +292,8 @@ function hasPermission(permissionName) {
             userRoles.includes('ceo') || 
             userRoles.includes('vice presidente') || 
             userRoles.includes('owner') || 
-            illegalRoles.includes('gerencia')) {
+            illegalRoles.includes('01') || 
+            illegalRoles.includes('gerente')) {
             return true;
         }
 
@@ -345,6 +379,125 @@ window.addStageToCart = function(stage) {
         }, 1200);
     }
 };
+
+// ─── RENDER ILLEGAL MURAL SCREEN ──────────────────────────────────────────
+function renderIllegalMuralScreen() {
+    itemsGrid.style.display = 'block';
+    homeContainer.style.display = 'none';
+
+    const illegalPosts = activeMural.filter(post => post.tag && post.tag.startsWith('[ILEGAL]'));
+    const canPost = db.isAdminLoggedIn() || (currentLoggedInMember && currentLoggedInMember.flagIlegal);
+    
+    let muralHtml = '';
+    if (illegalPosts.length === 0) {
+        muralHtml = `
+            <div class="empty-cart-msg" style="margin:20px 0; grid-column: 1/-1;">
+                <i class="fa-solid fa-bullhorn" style="font-size:1.8rem; color:#f59e0b;"></i>
+                <p>Nenhum aviso publicado no mural ilegal.</p>
+            </div>`;
+    } else {
+        muralHtml = illegalPosts.map(post => {
+            const dateStr = new Date(post.created_at).toLocaleDateString('pt-BR', {
+                day: '2-digit',
+                month: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+            const cleanTag = post.tag.replace('[ILEGAL]', '').trim();
+            const cardClass = cleanTag ? `${cleanTag.toLowerCase()}-card` : 'aviso-card';
+            const badgeClass = cleanTag ? `tag-${cleanTag.toLowerCase()}` : 'tag-aviso';
+            
+            return `
+                <div class="mural-card ${cardClass}" style="border-left-color:#f59e0b;">
+                    <div class="mural-card-top">
+                        <div class="mural-title-block">
+                            <span class="mural-badge ${badgeClass}" style="background:#f59e0b; color:black; font-weight:bold;">${cleanTag}</span>
+                            <h4 class="mural-title-text">${post.title}</h4>
+                        </div>
+                        <div class="mural-date">${dateStr}</div>
+                    </div>
+                    <p class="mural-body-text">${post.content}</p>
+                    <div class="mural-card-footer">
+                        <span class="mural-author-tag">Publicado por: ${post.author}</span>
+                        ${canPost ? `
+                            <button class="btn-delete-post" onclick="event.stopPropagation(); deleteMuralPost('${post.id}')" title="Excluir Aviso" style="color:#f59e0b;">
+                                <i class="fa-solid fa-trash-can"></i>
+                            </button>
+                        ` : ''}
+                    </div>
+                </div>`;
+        }).join('');
+    }
+
+    itemsGrid.innerHTML = `
+        <div class="mural-section" style="margin-bottom: 24px; grid-column: 1/-1; width:100%;">
+            <div class="mural-header-row" style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 20px;">
+                <h3 style="color:#f59e0b; display:flex; align-items:center; gap:8px;"><i class="fa-solid fa-bullhorn"></i> Mural Ilegal</h3>
+                ${canPost ? `
+                    <button class="action-btn" id="btnOpenNewMural" onclick="openMuralModal()" style="background:rgba(245,158,11,0.08); border-color:rgba(245,158,11,0.25); color:#f59e0b; padding:6px 12px; font-weight:600;">
+                        <i class="fa-solid fa-plus"></i> Novo Aviso Ilegal
+                    </button>
+                ` : ''}
+            </div>
+            <div class="mural-grid" style="display:grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap:20px;">
+                ${muralHtml}
+            </div>
+        </div>
+    `;
+}
+
+// ─── RENDER LIVES SCREEN ──────────────────────────────────────────────────
+function renderLivesScreen(isIllegal) {
+    itemsGrid.style.display = 'grid';
+    itemsGrid.style.gridTemplateColumns = 'repeat(auto-fill, minmax(240px, 1fr))';
+    homeContainer.style.display = 'none';
+
+    const liveMembers = activeMembers.filter(m => m.status === 'Ativo' && m.liveUrl && (isIllegal ? m.flagIlegal : (m.role && m.role !== 'Agregado')));
+
+    if (liveMembers.length === 0) {
+        itemsGrid.innerHTML = `
+            <div class="empty-cart-msg" style="margin:40px 0; grid-column:1/-1; text-align:center;">
+                <i class="fa-solid fa-play" style="font-size:2rem; color:${isIllegal ? '#f59e0b' : 'var(--red-primary)'}; opacity:0.3; margin-bottom:12px;"></i>
+                <p>Nenhuma transmissão ativa no momento.</p>
+                <p style="font-size:0.8rem; color:var(--white-muted); margin-top:4px;">Configure o link da sua live nas configurações de perfil.</p>
+            </div>`;
+        return;
+    }
+
+    itemsGrid.innerHTML = liveMembers.map(m => {
+        const initial = m.name ? m.name.charAt(0).toUpperCase() : '?';
+        const avatarStyle = `width:80px; height:80px; border-radius:8px; border:2px solid #ef4444; position:relative; overflow:hidden; box-shadow: 0 0 10px rgba(239, 68, 68, 0.5);`;
+        
+        let avatarContent = `<span style="font-size:1.8rem; font-weight:bold; color:var(--white-main); width:100%; height:100%; display:flex; align-items:center; justify-content:center; background:var(--black-panel);">${initial}</span>`;
+        if (m.avatarUrl) {
+            avatarContent = `<img src="${m.avatarUrl}" alt="${m.name}" style="width:100%; height:100%; object-fit:cover;" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"><span style="display:none; font-size:1.8rem; font-weight:bold; color:var(--white-main); width:100%; height:100%; align-items:center; justify-content:center; background:var(--black-panel);">${initial}</span>`;
+        }
+
+        const watchUrl = m.liveUrl.startsWith('http') ? m.liveUrl : 'https://' + m.liveUrl;
+
+        return `
+            <div class="lives-member-card" style="background:var(--black-card); border:1px solid var(--border-dark); border-radius:var(--radius-lg); padding:20px; display:flex; flex-direction:column; align-items:center; gap:12px; text-align:center; position:relative; transition:var(--transition); cursor:pointer;" onclick="window.open('${watchUrl}', '_blank')">
+                <div class="live-badge" style="position:absolute; top:12px; right:12px; background:#ef4444; color:white; font-size:0.68rem; font-weight:800; padding:2px 6px; border-radius:4px; text-transform:uppercase; letter-spacing:0.5px; display:flex; align-items:center; gap:4px; animation: live-blink 1.5s infinite;">
+                    <span style="width:6px; height:6px; background:white; border-radius:50%; display:inline-block;"></span>
+                    AO VIVO
+                </div>
+                <div class="member-avatar-wrapper" style="position:relative; animation: live-pulse 1.5s infinite; border-radius:8px;">
+                    <div style="${avatarStyle}">
+                        ${avatarContent}
+                    </div>
+                </div>
+                <div style="display:flex; flex-direction:column; gap:2px; width:100%;">
+                    <h4 style="font-size:0.95rem; font-weight:700; color:var(--white-main); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; width:100%;">${m.name}</h4>
+                    <span style="font-size:0.75rem; color:var(--white-muted); display:flex; align-items:center; justify-content:center; gap:4px;">
+                        <i class="fa-solid fa-shield-halved"></i> ${isIllegal ? m.illegalRole : m.role}
+                    </span>
+                </div>
+                <a href="${watchUrl}" target="_blank" onclick="event.stopPropagation();" class="action-btn primary-btn" style="width:100%; justify-content:center; background:${isIllegal ? '#f59e0b' : 'var(--red-primary)'}; color:${isIllegal ? 'black' : 'white'}; font-weight:bold; border:none; padding:8px 12px; border-radius:var(--radius-sm); font-size:0.82rem; display:flex; align-items:center; gap:6px; text-decoration:none;">
+                    <i class="fa-solid fa-play"></i> Assistir Live
+                </a>
+            </div>`;
+    }).join('');
+}
 
 // ─── RENDER HOME SCREEN & MURAL ───────────────────────────────────────────
 function renderHomeScreen() {
@@ -433,15 +586,16 @@ function renderHomeScreen() {
 
     const isAdmin = db.isAdminLoggedIn();
     let muralHtml = '';
+    const legalPosts = activeMural.filter(post => !post.tag || !post.tag.startsWith('[ILEGAL]'));
     
-    if (activeMural.length === 0) {
+    if (legalPosts.length === 0) {
         muralHtml = `
             <div class="empty-cart-msg" style="margin:20px 0;">
                 <i class="fa-solid fa-bullhorn" style="font-size:1.8rem;"></i>
                 <p>Nenhum aviso publicado no mural.</p>
             </div>`;
     } else {
-        muralHtml = activeMural.map(post => {
+        muralHtml = legalPosts.map(post => {
             const dateStr = new Date(post.created_at).toLocaleDateString('pt-BR', {
                 day: '2-digit',
                 month: '2-digit',
@@ -592,13 +746,18 @@ function renderMembersScreen(searchTerm = '') {
                              (currentLoggedInMember && (currentLoggedInMember.flagIlegal || hasPermission('access_illegal')));
 
     // Filter actives: do not show Agregado (illegal-only) members on the legal list
-    const visibleActives = actives.filter(m => m.role && m.role !== 'Agregado' && m.role !== '' && !m.isAgregado);
+    let visibleActives = [];
+    if (isIllegalUnlocked) {
+        visibleActives = actives.filter(m => m.flagIlegal);
+    } else {
+        visibleActives = actives.filter(m => m.role && m.role !== 'Agregado' && m.role !== '' && !m.isAgregado);
+    }
 
     // Filter actives by search term
     const filteredActives = visibleActives.filter(m => 
         m.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
         m.passport.includes(searchTerm) || 
-        m.role.toLowerCase().includes(searchTerm.toLowerCase())
+        (isIllegalUnlocked ? (m.illegalRole && m.illegalRole.toLowerCase().includes(searchTerm.toLowerCase())) : (m.role && m.role.toLowerCase().includes(searchTerm.toLowerCase())))
     );
 
     let html = '';
@@ -637,13 +796,12 @@ function renderMembersScreen(searchTerm = '') {
                                             <input type="checkbox" id="assign-illegal-${p.id}" ${p.flagIlegal ? 'checked' : ''} style="accent-color:#f59e0b;" onchange="window.toggleAssignIllegalSelect('${p.id}')"> Habilitar Flag Ilegal
                                         </label>
                                         <select id="assign-illegal-role-${p.id}" style="padding:4px; background:var(--black-card); border:1px solid var(--border-dark); border-radius:4px; color:#f59e0b; font-size:0.75rem; display:${p.flagIlegal ? 'block' : 'none'};">
-                                             <option value="Membro" ${p.illegalRole.includes('Membro') ? 'selected' : ''}>Membro</option>
-                                             <option value="Racer" ${p.illegalRole.includes('Racer') ? 'selected' : ''}>Racer</option>
-                                             <option value="Boosting" ${p.illegalRole.includes('Boosting') ? 'selected' : ''}>Boosting</option>
-                                             <option value="Probatorio" ${p.illegalRole.includes('Probatorio') ? 'selected' : ''}>Probatorio</option>
-                                             <option value="Designer" ${p.illegalRole.includes('Designer') ? 'selected' : ''}>Designer</option>
-                                             <option value="Gerencia" ${p.illegalRole.includes('Gerencia') ? 'selected' : ''}>Gerencia</option>
-                                         </select>
+                                              <option value="01" ${p.illegalRole.includes('01') ? 'selected' : ''}>01</option>
+                                              <option value="Gerente" ${p.illegalRole.includes('Gerente') ? 'selected' : ''}>Gerente</option>
+                                              <option value="Corredor" ${p.illegalRole.includes('Corredor') ? 'selected' : ''}>Corredor</option>
+                                              <option value="Membro" ${p.illegalRole.includes('Membro') ? 'selected' : ''}>Membro</option>
+                                              <option value="Probatorio" ${p.illegalRole.includes('Probatorio') ? 'selected' : ''}>Probatorio</option>
+                                          </select>
                                     </div>
                                 </div>
 
@@ -692,11 +850,13 @@ function renderMembersScreen(searchTerm = '') {
                     ${isIlegalTag}
                 </div>
                 <div class="member-card-header">
-                    <div class="member-avatar">${initial}</div>
+                    <div class="member-avatar ${m.liveUrl ? 'is-live' : ''}" ${m.liveUrl ? `onclick="window.open('${m.liveUrl.startsWith('http') ? m.liveUrl : 'https://' + m.liveUrl}', '_blank'); event.stopPropagation();" title="Assistir Live"` : ''}>
+                        ${m.avatarUrl ? `<img src="${m.avatarUrl}" alt="${m.name}" style="width:100%; height:100%; object-fit:cover; border-radius:inherit;" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"><span style="display:none; align-items:center; justify-content:center; width:100%; height:100%;">${initial}</span>` : initial}
+                    </div>
                     <div class="member-meta" style="margin-right: 75px;">
                         <h4 class="member-name" style="white-space: normal; word-break: break-word; line-height: 1.2; margin-bottom: 2px;">${m.name}</h4>
-                        <span class="member-role-badge">
-                            <i class="fa-solid fa-shield-halved"></i> ${m.role}
+                        <span class="member-role-badge" style="${isIllegalUnlocked ? 'color:#f59e0b; border-color:rgba(245,158,11,0.25); background:rgba(245,158,11,0.05);' : ''}">
+                            <i class="fa-solid fa-shield-halved"></i> ${isIllegalUnlocked ? (m.illegalRole || 'Membro') : m.role}
                         </span>
                     </div>
                 </div>
@@ -813,8 +973,7 @@ function renderHierarchyScreen() {
             if (role.name === 'Agregado') return;
             const membersOfRole = activeMembers.filter(m => {
                 if (!m.role || m.status !== 'Ativo') return false;
-                const roles = m.role.split(',').map(r => r.trim().toLowerCase());
-                return roles.includes(role.name.toLowerCase());
+                return getMemberHighestRole(m).toLowerCase() === role.name.toLowerCase();
             });
             
             hierarchyHtml += `
@@ -854,12 +1013,16 @@ function renderHierarchyScreen() {
                         </div>
                     ` : '';
 
+                    const avatarContent = m.avatarUrl 
+                        ? `<img src="${m.avatarUrl}" alt="${m.name}" style="width:100%; height:100%; object-fit:cover; border-radius:inherit;" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"><span style="display:none; align-items:center; justify-content:center; width:100%; height:100%;">${initial}</span>` 
+                        : initial;
+
                     hierarchyHtml += `
                         <div class="hierarchy-member-card" style="display:flex; align-items:center; width:100%; cursor: pointer;" onclick="window.handleMemberCardClick('${m.id}')">
-                            <div class="hierarchy-member-avatar">${initial}</div>
+                            <div class="hierarchy-member-avatar ${m.liveUrl ? 'is-live' : ''}" ${m.liveUrl ? `onclick="window.open('${m.liveUrl.startsWith('http') ? m.liveUrl : 'https://' + m.liveUrl}', '_blank'); event.stopPropagation();" title="Assistir Live"` : ''}>${avatarContent}</div>
                             <div class="hierarchy-member-info">
                                 <span class="hierarchy-member-name">${m.name}</span>
-                                <span class="hierarchy-member-status">Ativo</span>
+                                <span class="hierarchy-member-status">${m.role}</span>
                             </div>
                             ${ceoControls}
                         </div>
@@ -1605,23 +1768,18 @@ function renderIllegalHierarchy() {
     let hierarchyHtml = '<div class="hierarchy-container">';
     
     // Sort ranks for illegal hierarchy
-    const illegalRoles = ['Gerencia', 'Designer', 'Racer', 'Boosting', 'Membro', 'Probatorio'];
+    const illegalRoles = ['01', 'Gerente', 'Corredor', 'Membro', 'Probatorio'];
     const icons = {
-        'Gerencia': 'fa-solid fa-crown',
-        'Designer': 'fa-solid fa-palette',
-        'Racer': 'fa-solid fa-gauge-high',
-        'Boosting': 'fa-solid fa-car',
+        '01': 'fa-solid fa-crown',
+        'Gerente': 'fa-solid fa-crown',
+        'Corredor': 'fa-solid fa-gauge-high',
         'Membro': 'fa-solid fa-user-group',
         'Probatorio': 'fa-solid fa-user-clock'
     };
 
     illegalRoles.forEach(roleName => {
         const membersOfLevel = illegalMembers.filter(m => {
-            if (m.illegalRole) {
-                const roles = m.illegalRole.split(',').map(r => r.trim().toLowerCase());
-                return roles.includes(roleName.toLowerCase());
-            }
-            return false;
+            return getMemberHighestIllegalRole(m).toLowerCase() === roleName.toLowerCase();
         });
 
         hierarchyHtml += `
@@ -1656,12 +1814,16 @@ function renderIllegalHierarchy() {
                     </div>
                 ` : '';
 
+                const avatarContent = m.avatarUrl 
+                    ? `<img src="${m.avatarUrl}" alt="${m.name}" style="width:100%; height:100%; object-fit:cover; border-radius:inherit;" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"><span style="display:none; align-items:center; justify-content:center; width:100%; height:100%;">${initial}</span>` 
+                    : initial;
+
                 hierarchyHtml += `
                     <div class="hierarchy-member-card" style="display:flex; align-items:center; width:100%; cursor: pointer;" onclick="window.handleMemberCardClick('${m.id}')">
-                        <div class="hierarchy-member-avatar">${initial}</div>
+                        <div class="hierarchy-member-avatar ${m.liveUrl ? 'is-live' : ''}" ${m.liveUrl ? `onclick="window.open('${m.liveUrl.startsWith('http') ? m.liveUrl : 'https://' + m.liveUrl}', '_blank'); event.stopPropagation();" title="Assistir Live"` : ''}>${avatarContent}</div>
                         <div class="hierarchy-member-info">
                             <span class="hierarchy-member-name">${m.name}</span>
-                            <span class="hierarchy-member-status" style="color:#f59e0b;">Ativo</span>
+                            <span class="hierarchy-member-status" style="color:#f59e0b;">${m.illegalRole}</span>
                         </div>
                         ${ceoControls}
                     </div>
@@ -1804,6 +1966,27 @@ function renderItems(searchTerm = '') {
         if (searchBar) searchBar.style.display = 'none';
         renderIllegalCars();
         return;
+    } else if (currentCategory === 'illegal-mural') {
+        itemsGrid.style.display = 'block';
+        homeContainer.style.display = 'none';
+        if (stageButtonsContainer) stageButtonsContainer.style.display = 'none';
+        if (searchBar) searchBar.style.display = 'none';
+        renderIllegalMuralScreen();
+        return;
+    } else if (currentCategory === 'lives') {
+        itemsGrid.style.display = 'block';
+        homeContainer.style.display = 'none';
+        if (stageButtonsContainer) stageButtonsContainer.style.display = 'none';
+        if (searchBar) searchBar.style.display = 'none';
+        renderLivesScreen(false);
+        return;
+    } else if (currentCategory === 'illegal-lives') {
+        itemsGrid.style.display = 'block';
+        homeContainer.style.display = 'none';
+        if (stageButtonsContainer) stageButtonsContainer.style.display = 'none';
+        if (searchBar) searchBar.style.display = 'none';
+        renderLivesScreen(true);
+        return;
     } else {
         itemsGrid.style.display = 'grid';
         homeContainer.style.display = 'none';
@@ -1896,14 +2079,7 @@ function renderItems(searchTerm = '') {
 window.addToCart = function(itemId, category) {
     const actualCategory = (category === 'home') ? 'services' : category;
 
-    // Check if user can edit this category — if edit mode OR has edit permission
-    const canEditCategory =
-        (actualCategory === 'components' && hasPermission('edit_stages')) ||
-        (actualCategory === 'services'   && hasPermission('edit_services')) ||
-        (actualCategory === 'products'   && hasPermission('edit_products')) ||
-        (actualCategory === 'illegal-recipes' && hasPermission('edit_products'));
-
-    if (window.isEditModeActive || (canEditCategory && editCurrentBtn && editCurrentBtn.style.display !== 'none')) {
+    if (window.isEditModeActive) {
         openItemEditModal(itemId, actualCategory);
         return;
     }
@@ -2070,30 +2246,79 @@ function updateAuthUI() {
     const btnHierarchy = document.getElementById('btn-hierarchy');
     const btnVault = document.getElementById('btn-vault');
 
+    const isIllegalOnly = currentLoggedInMember && 
+                          (!currentLoggedInMember.role || currentLoggedInMember.role === 'Agregado') && 
+                          currentLoggedInMember.flagIlegal;
+
+    const normalNav = document.getElementById('normalNav');
+    const illegalNav = document.getElementById('illegalNav');
+
+    if (isLoggedIn && isIllegalOnly) {
+        isIllegalUnlocked = true;
+        currentIllegalMember = currentLoggedInMember;
+        document.body.classList.add('theme-gold');
+
+        const brandLogo = document.querySelector('.brand-logo');
+        const brandTagline = document.querySelector('.brand-tagline');
+        if (brandLogo) {
+            brandLogo.innerHTML = '<span class="brand-re" style="color:#f59e0b;">SECRET</span>';
+        }
+        if (brandTagline) {
+            brandTagline.textContent = 'Criminal Operations';
+        }
+
+        if (normalNav) normalNav.style.display = 'none';
+        if (illegalNav) illegalNav.style.display = 'flex';
+
+        const illegalAllowed = ['illegal-recipes', 'illegal-actions', 'illegal-hierarchy', 'illegal-boosting', 'illegal-cars', 'illegal-mural', 'illegal-lives', 'members'];
+        if (!illegalAllowed.includes(currentCategory)) {
+            currentCategory = 'illegal-recipes';
+        }
+    } else if (isLoggedIn) {
+        if (isIllegalUnlocked) {
+            if (normalNav) normalNav.style.display = 'none';
+            if (illegalNav) illegalNav.style.display = 'flex';
+        } else {
+            if (normalNav) normalNav.style.display = 'flex';
+            if (illegalNav) illegalNav.style.display = 'none';
+        }
+    }
+
     if (!isLoggedIn) {
         if (btnMembers) btnMembers.style.display = 'none';
         if (btnHierarchy) btnHierarchy.style.display = 'none';
         if (btnVault) btnVault.style.display = 'none';
 
-        // Reset illegal mode if active
-        if (isIllegalUnlocked) {
-            isIllegalUnlocked = false;
-            currentIllegalMember = null;
-            const normalNav = document.getElementById('normalNav');
-            const illegalNav = document.getElementById('illegalNav');
-            if (normalNav) normalNav.style.display = 'block';
-            if (illegalNav) illegalNav.style.display = 'none';
-            document.body.classList.remove('theme-gold');
+        isIllegalUnlocked = false;
+        currentIllegalMember = null;
+        if (normalNav) normalNav.style.display = 'flex';
+        if (illegalNav) illegalNav.style.display = 'none';
+        document.body.classList.remove('theme-gold');
+        
+        // Restore Brand header
+        const brandLogo = document.querySelector('.brand-logo');
+        const brandTagline = document.querySelector('.brand-tagline');
+        if (brandLogo) {
+            brandLogo.innerHTML = '<span class="brand-re">RE:</span><span class="brand-colon">:</span><span class="brand-motion">Motion</span>';
+        }
+        if (brandTagline) {
+            brandTagline.textContent = 'Performance Shop';
         }
 
         // Redirect if on restricted category
-        if (['members', 'hierarchy', 'vault', 'illegal-recipes', 'illegal-actions', 'illegal-hierarchy', 'illegal-boosting', 'illegal-cars'].includes(currentCategory)) {
+        if (['members', 'hierarchy', 'vault', 'illegal-recipes', 'illegal-actions', 'illegal-hierarchy', 'illegal-boosting', 'illegal-cars', 'illegal-mural', 'illegal-lives'].includes(currentCategory)) {
             switchCategory('home');
         }
     } else {
-        if (btnMembers) btnMembers.style.display = 'flex';
-        if (btnHierarchy) btnHierarchy.style.display = 'flex';
-        if (btnVault) btnVault.style.display = 'flex';
+        if (!isIllegalOnly) {
+            if (btnMembers) btnMembers.style.display = 'flex';
+            if (btnHierarchy) btnHierarchy.style.display = 'flex';
+            if (btnVault) btnVault.style.display = 'flex';
+        } else {
+            if (btnMembers) btnMembers.style.display = 'none';
+            if (btnHierarchy) btnHierarchy.style.display = 'none';
+            if (btnVault) btnVault.style.display = 'none';
+        }
     }
     
     // Header add button depending on category permissions
@@ -2171,10 +2396,13 @@ function updateAuthUI() {
 
     // Set illegal toggle text/color and visibility
     if (btnToggleIllegal) {
-        const hasIllegalAccess = db.isAdminLoggedIn() || 
-                                 (currentLoggedInMember && (currentLoggedInMember.flagIlegal || hasPermission('access_illegal')));
-        
-        if (isIllegalUnlocked || hasIllegalAccess) {
+        if (isIllegalOnly) {
+            btnToggleIllegal.style.display = 'none';
+        } else {
+            const hasIllegalAccess = db.isAdminLoggedIn() || 
+                                     (currentLoggedInMember && (currentLoggedInMember.flagIlegal || hasPermission('access_illegal')));
+            
+            if (isIllegalUnlocked || hasIllegalAccess) {
             btnToggleIllegal.style.display = 'flex';
             if (isIllegalUnlocked) {
                 btnToggleIllegal.innerHTML = `<i class="fa-solid fa-mask"></i> Voltar p/ Oficina`;
@@ -2411,9 +2639,15 @@ window.openMuralModal = function() {
 if (formMuralPost) {
     formMuralPost.addEventListener('submit', async (e) => {
         e.preventDefault();
+        let tagVal = document.getElementById('muralTag').value.trim();
+        if (currentCategory === 'illegal-mural') {
+            if (!tagVal.startsWith('[ILEGAL]')) {
+                tagVal = `[ILEGAL] ${tagVal}`;
+            }
+        }
         const post = {
             title: document.getElementById('muralTitle').value,
-            tag: document.getElementById('muralTag').value,
+            tag: tagVal,
             author: document.getElementById('muralAuthor').value,
             content: document.getElementById('muralContent').value
         };
@@ -2548,11 +2782,12 @@ if (formIllegalAuth) {
     formIllegalAuth.addEventListener('submit', (e) => {
         e.preventDefault();
         const passport = document.getElementById('illegalPassportInput').value.trim();
+        const enteredPassword = document.getElementById('illegalPasswordInputVal').value;
         const errorMsg = document.getElementById('illegalAuthErrorMsg');
 
         // Look for member
         const member = activeMembers.find(m => m.passport === passport);
-        if (member && member.flagIlegal) {
+        if (member && member.flagIlegal && member.password && enteredPassword && member.password.toLowerCase() === enteredPassword.toLowerCase()) {
             isIllegalUnlocked = true;
             currentIllegalMember = member;
             
@@ -2579,7 +2814,7 @@ if (formIllegalAuth) {
             // Direct navigation to illegal recipes category tab
             switchCategory('illegal-recipes');
         } else {
-            errorMsg.textContent = "Acesso Negado. Passaporte inválido ou sem flag ilegal.";
+            errorMsg.textContent = "Acesso Negado. Passaporte ou senha inválidos, ou sem flag ilegal.";
             errorMsg.style.display = 'block';
         }
     });
@@ -2588,6 +2823,18 @@ if (formIllegalAuth) {
 // Dynamic routing function for sidebar clicks
 function switchCategory(cat) {
     if (!cat || !categoryMeta[cat]) return;
+
+    const isIllegalOnly = currentLoggedInMember && 
+                          (!currentLoggedInMember.role || currentLoggedInMember.role === 'Agregado') && 
+                          currentLoggedInMember.flagIlegal;
+                          
+    if (isIllegalOnly) {
+        const illegalAllowed = ['illegal-recipes', 'illegal-actions', 'illegal-hierarchy', 'illegal-boosting', 'illegal-cars', 'illegal-mural', 'illegal-lives', 'members'];
+        if (!illegalAllowed.includes(cat)) {
+            cat = 'illegal-recipes';
+        }
+    }
+
     // Reset edit mode when changing category
     window.isEditModeActive = false;
     document.body.classList.remove('edit-mode-active');
@@ -2607,7 +2854,11 @@ function switchCategory(cat) {
     
     searchInput.value = '';
 
-    const meta = categoryMeta[currentCategory];
+    const meta = { ...categoryMeta[currentCategory] };
+    if (currentCategory === 'members' && isIllegalUnlocked) {
+        meta.title = 'Membros Ilícitos';
+        meta.subtitle = 'Gestão de membros e cargos da facção ilegal';
+    }
     categoryTitle.textContent    = meta.title;
     categorySubtitle.textContent = meta.subtitle;
 
@@ -3024,7 +3275,7 @@ window.openMemberEditModal = function(memberId = '') {
     `).join('');
 
     // Populate illegal roles checklist
-    const illegalRolesList = ['Gerencia', 'Designer', 'Racer', 'Boosting', 'Membro', 'Probatorio'];
+    const illegalRolesList = ['01', 'Gerente', 'Corredor', 'Membro', 'Probatorio'];
     const illegalRolesContainer = document.getElementById('editMemberIllegalRolesContainer');
     illegalRolesContainer.innerHTML = illegalRolesList.map(r => `
         <label style="display:flex; align-items:center; gap:8px; font-size:0.85rem; color:var(--white-main); cursor:pointer;">
@@ -3045,6 +3296,7 @@ window.openMemberEditModal = function(memberId = '') {
             document.getElementById('editMemberPhone').value = member.phone;
             document.getElementById('editMemberJoinDate').value = member.joinDate;
             document.getElementById('editMemberAvatarUrl').value = member.avatarUrl || '';
+            document.getElementById('editMemberLiveUrl').value = member.liveUrl || '';
             
             // Set checkboxes for legal roles
             const userRoles = member.role ? member.role.split(',').map(r => r.trim().toLowerCase()) : [];
@@ -3068,6 +3320,7 @@ window.openMemberEditModal = function(memberId = '') {
         document.getElementById('editMemberId').value = '';
         document.getElementById('editMemberJoinDate').value = new Date().toISOString().substring(0, 10);
         document.getElementById('editMemberAvatarUrl').value = '';
+        document.getElementById('editMemberLiveUrl').value = '';
         document.getElementById('editMemberIllegalRoleGroup').style.display = 'none';
 
         // Select Estagiario as default for new members
@@ -3087,8 +3340,11 @@ if (formMemberEdit) {
         const selectedRoles = Array.from(document.querySelectorAll('.edit-member-role-cb:checked')).map(cb => cb.value).join(', ');
         const selectedIllegalRoles = Array.from(document.querySelectorAll('.edit-member-illegal-role-cb:checked')).map(cb => cb.value).join(', ');
 
+        const memberId = document.getElementById('editMemberId').value;
+        const existingMember = memberId ? activeMembers.find(m => m.id === memberId) : null;
+
         const member = {
-            id: document.getElementById('editMemberId').value || 'm_' + Date.now(),
+            id: memberId || 'm_' + Date.now(),
             name: document.getElementById('editMemberName').value,
             role: selectedRoles || 'Agregado',
             status: document.getElementById('editMemberStatus').value,
@@ -3096,7 +3352,10 @@ if (formMemberEdit) {
             phone: document.getElementById('editMemberPhone').value,
             joinDate: document.getElementById('editMemberJoinDate').value,
             flagIlegal: flagIlegal,
-            illegalRole: flagIlegal ? selectedIllegalRoles : ''
+            illegalRole: flagIlegal ? selectedIllegalRoles : '',
+            avatarUrl: document.getElementById('editMemberAvatarUrl').value.trim(),
+            liveUrl: document.getElementById('editMemberLiveUrl').value.trim(),
+            password: existingMember ? existingMember.password : 'membro123'
         };
 
         await db.saveMember(member);

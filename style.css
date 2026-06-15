@@ -1824,7 +1824,7 @@ body {
 .member-avatar {
     width: 44px;
     height: 44px;
-    border-radius: 50%;
+    border-radius: 10px;
     background: var(--black-panel);
     border: 1.5px solid var(--border-dark);
     display: flex;
@@ -1833,6 +1833,7 @@ body {
     color: var(--white-muted);
     font-size: 1.1rem;
     flex-shrink: 0;
+    overflow: hidden;
 }
 
 .member-card:hover .member-avatar {
@@ -1999,7 +2000,7 @@ body {
 .hierarchy-member-avatar {
     width: 28px;
     height: 28px;
-    border-radius: 50%;
+    border-radius: 8px;
     background: var(--black-panel);
     border: 1px solid var(--border-dark);
     display: flex;
@@ -2008,6 +2009,7 @@ body {
     color: var(--white-muted);
     font-size: 0.78rem;
     flex-shrink: 0;
+    overflow: hidden;
 }
 
 .hierarchy-member-card:hover .hierarchy-member-avatar {
@@ -2593,9 +2595,27 @@ button[onclick*="openImpoundedCarModal"] {
 
 .edit-mode-active.theme-gold .vault-logs-panel[style*="cursor: pointer"]:hover {
     box-shadow: 0 0 20px rgba(245, 158, 11, 0.4) !important;
+}/* Live Indicators styling */
+.member-avatar.is-live,
+.hierarchy-member-avatar.is-live {
+    border-color: #ef4444 !important;
+    animation: live-pulse-ring 1.5s infinite;
 }
 
+@keyframes live-pulse-ring {
+    0% {
+        box-shadow: 0 0 0 0px rgba(239, 68, 68, 0.7);
+    }
+    70% {
+        box-shadow: 0 0 0 6px rgba(239, 68, 68, 0);
+    }
+    100% {
+        box-shadow: 0 0 0 0px rgba(239, 68, 68, 0);
+    }
+}
 
-
-
-
+@keyframes live-blink {
+    0% { opacity: 1; }
+    50% { opacity: 0.4; }
+    100% { opacity: 1; }
+}

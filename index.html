@@ -54,10 +54,16 @@
                     <button class="category-btn" id="btn-vault" data-category="vault">
                         <i class="fa-solid fa-vault"></i> Baú
                     </button>
+                    <button class="category-btn" id="btn-lives" data-category="lives">
+                        <i class="fa-solid fa-play"></i> Lives
+                    </button>
                 </nav>
                 <nav class="categories" id="illegalNav" style="display: none;">
                     <button class="category-btn" id="btn-illegal-recipes" data-category="illegal-recipes">
                         <i class="fa-solid fa-flask"></i> Produtos
+                    </button>
+                    <button class="category-btn" id="btn-illegal-members" data-category="members">
+                        <i class="fa-solid fa-users"></i> Membros
                     </button>
                     <button class="category-btn" id="btn-illegal-actions" data-category="illegal-actions">
                         <i class="fa-solid fa-gun"></i> Ações
@@ -70,6 +76,12 @@
                     </button>
                     <button class="category-btn" id="btn-illegal-cars" data-category="illegal-cars">
                         <i class="fa-solid fa-car-burst"></i> Carros Detidos
+                    </button>
+                    <button class="category-btn" id="btn-illegal-mural" data-category="illegal-mural">
+                        <i class="fa-solid fa-bullhorn"></i> Mural
+                    </button>
+                    <button class="category-btn" id="btn-illegal-lives" data-category="illegal-lives">
+                        <i class="fa-solid fa-play"></i> Lives
                     </button>
                 </nav>
             </div>
@@ -451,6 +463,10 @@
                     <label for="editMemberAvatarUrl">URL da Foto de Perfil (Opcional)</label>
                     <input type="url" id="editMemberAvatarUrl" placeholder="https://exemplo.com/foto.jpg">
                 </div>
+                <div class="form-group">
+                    <label for="editMemberLiveUrl">URL da Live Stream (Opcional)</label>
+                    <input type="url" id="editMemberLiveUrl" placeholder="https://twitch.tv/usuario ou https://youtube.com/...">
+                </div>
                 <div class="form-row" style="align-items: center; margin: 10px 0;">
                     <div class="form-group" style="flex-direction:row; align-items:center; gap:10px; margin: 0; width: auto;">
                         <input type="checkbox" id="editMemberIlegal" style="width:auto; margin:0; cursor:pointer;" onchange="document.getElementById('editMemberIllegalRoleGroup').style.display = this.checked ? 'block' : 'none';">
@@ -622,11 +638,16 @@
                 <button class="modal-close-btn">&times;</button>
             </header>
             <form id="formIllegalAuth" class="modal-body" style="gap:16px;">
-                <p style="font-size:0.85rem; color:var(--white-muted); text-align:center;">Informe o seu **Passaporte**
+                <p style="font-size:0.85rem; color:var(--white-muted); text-align:center;">Informe o seu **Passaporte** e **Senha**
                     para validar se você possui autorização ilegal.</p>
                 <div class="form-group">
                     <label for="illegalPassportInput">Passaporte</label>
                     <input type="text" id="illegalPassportInput" required placeholder="Ex: 123"
+                        style="text-align:center; font-size:1.2rem;">
+                </div>
+                <div class="form-group">
+                    <label for="illegalPasswordInputVal">Senha</label>
+                    <input type="password" id="illegalPasswordInputVal" required placeholder="Sua senha"
                         style="text-align:center; font-size:1.2rem;">
                 </div>
                 <div class="error-msg" id="illegalAuthErrorMsg" style="text-align:center;"></div>

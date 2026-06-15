@@ -395,7 +395,9 @@ const db = {
             status: m.status,
             password: m.password,
             flagIlegal: m.flag_ilegal,
-            illegalRole: m.illegal_role
+            illegalRole: m.illegal_role,
+            avatarUrl: m.avatar_url || '',
+            liveUrl: m.live_url || ''
         }));
     },
 
@@ -404,7 +406,7 @@ const db = {
         if (supabaseInstance) {
             const { data, error } = await supabaseInstance.from('members').select('*');
             if (!error && data) {
-                // Fetch local storage members to see if any are missing in Supabase
+                // Fetch local storage members to see if any are missing in Supabase or if we need local fields
                 const localMembers = JSON.parse(safeStorage.getItem('members_local') || '[]');
                 const existingIds = new Set(data.map(m => m.id));
                 const missingMembers = localMembers.filter(m => !existingIds.has(m.id));
@@ -422,17 +424,45 @@ const db = {
                             status: member.status,
                             password: member.password,
                             flag_ilegal: member.flagIlegal,
-                            illegal_role: member.illegalRole
+                            illegal_role: member.illegalRole,
+                            avatar_url: member.avatarUrl || '',
+                            live_url: member.liveUrl || ''
                         };
-                        await supabaseInstance.from('members').upsert(dbMember);
+                        try {
+                            const { error: seedErr } = await supabaseInstance.from('members').upsert(dbMember);
+                            if (seedErr) {
+                                console.warn("Supabase seed error, retrying without avatar_url/live_url", seedErr);
+                                delete dbMember.avatar_url;
+                                delete dbMember.live_url;
+                                await supabaseInstance.from('members').upsert(dbMember);
+                            }
+                        } catch (e) {
+                            console.error(e);
+                        }
                     }
                     // Fetch all members again to get the complete set
                     const { data: refreshedData } = await supabaseInstance.from('members').select('*');
                     if (refreshedData) {
-                        return db.processMembersData(refreshedData);
+                        const processed = db.processMembersData(refreshedData);
+                        processed.forEach(m => {
+                            const local = localMembers.find(lm => lm.id === m.id);
+                            if (local) {
+                                if (!m.avatarUrl && local.avatarUrl) m.avatarUrl = local.avatarUrl;
+                                if (!m.liveUrl && local.liveUrl) m.liveUrl = local.liveUrl;
+                            }
+                        });
+                        return processed;
                     }
                 }
-                return db.processMembersData(data);
+                const processed = db.processMembersData(data);
+                processed.forEach(m => {
+                    const local = localMembers.find(lm => lm.id === m.id);
+                    if (local) {
+                        if (!m.avatarUrl && local.avatarUrl) m.avatarUrl = local.avatarUrl;
+                        if (!m.liveUrl && local.liveUrl) m.liveUrl = local.liveUrl;
+                    }
+                });
+                return processed;
             }
             console.warn("Supabase members error, using local storage", error);
         }
@@ -451,11 +481,17 @@ const db = {
                 status: member.status,
                 password: member.password,
                 flag_ilegal: member.flagIlegal,
-                illegal_role: member.illegalRole
+                illegal_role: member.illegalRole,
+                avatar_url: member.avatarUrl || '',
+                live_url: member.liveUrl || ''
             };
             const { error } = await supabaseInstance.from('members').upsert(dbMember);
-            if (!error) return true;
-            console.error("Supabase error saving member:", error);
+            if (error) {
+                console.warn("Supabase member save error, retrying without avatar_url/live_url", error);
+                delete dbMember.avatar_url;
+                delete dbMember.live_url;
+                await supabaseInstance.from('members').upsert(dbMember);
+            }
         }
         const locals = JSON.parse(safeStorage.getItem('members_local') || '[]');
         const idx = locals.findIndex(m => m.id === member.id);
@@ -468,7 +504,8 @@ const db = {
     memberLogin: async (passportOrEmail, password) => {
         // Load members list (queries Supabase if connected)
         const membersList = await db.getMembers();
-        const member = membersList.find(m => (m.passport === passportOrEmail || m.email === passportOrEmail) && m.password === password);
+        const member = membersList.find(m => (m.passport === passportOrEmail || m.email === passportOrEmail) && 
+            (m.password && password && m.password.toLowerCase() === password.toLowerCase()));
         if (!member) {
             return { success: false, error: 'Usuário ou senha incorretos.' };
         }
