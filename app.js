@@ -621,10 +621,10 @@ function getMemberYoutubeVideos(member) {
     
     if (nameLower.includes('ryan') || ytUrl.includes('v1xenbeast')) {
         return [
-            { id: 'v1x_vid1', title: 'Me OBRIGARAM a fazer um ROUBO IMPOSSÍVEL ☠️ - GTA RP', duration: '24:15', views: '42K', date: 'há 2 dias', thumbnail: defaultThumbnails[0], youtubeId: 'dQw4w9WgXcQ' },
-            { id: 'v1x_vid2', title: 'Me consagrei o melhor do Servidor (Illegal Racing)', duration: '32:10', views: '28K', date: 'há 4 dias', thumbnail: defaultThumbnails[1], youtubeId: 'dQw4w9WgXcQ' },
-            { id: 'v1x_vid3', title: 'Mostrando como eu uso o CONTROLE nas CORRIDAS - GTA RP', duration: '15:45', views: '18K', date: 'há 6 dias', thumbnail: defaultThumbnails[2], youtubeId: 'dQw4w9WgXcQ' },
-            { id: 'v1x_vid4', title: 'Me fizeram começar em ÚLTIMO na corrida e ainda ganhei! - GTA RP', duration: '21:30', views: '35K', date: 'há 1 semana', thumbnail: defaultThumbnails[3], youtubeId: 'dQw4w9WgXcQ' }
+            { id: 'v1x_vid1', title: 'Me OBRIGARAM a fazer um ROUBO IMPOSSÍVEL ☠️ - GTA RP', duration: '24:15', views: '42K', date: 'há 2 dias', thumbnail: defaultThumbnails[0], youtubeId: 'kYJ-w2Yw2-s' },
+            { id: 'v1x_vid2', title: 'Me consagrei o melhor do Servidor (Illegal Racing)', duration: '32:10', views: '28K', date: 'há 4 dias', thumbnail: defaultThumbnails[1], youtubeId: 'Jb-vVjY4CjQ' },
+            { id: 'v1x_vid3', title: 'Mostrando como eu uso o CONTROLE nas CORRIDAS - GTA RP', duration: '15:45', views: '18K', date: 'há 6 dias', thumbnail: defaultThumbnails[2], youtubeId: 'R9H7n6wS644' },
+            { id: 'v1x_vid4', title: 'Me fizeram começar em ÚLTIMO na corrida e ainda ganhei! - GTA RP', duration: '21:30', views: '35K', date: 'há 1 semana', thumbnail: defaultThumbnails[3], youtubeId: 'R9K15qgWbQ4' }
         ];
     }
     
