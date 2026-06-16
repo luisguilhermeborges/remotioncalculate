@@ -621,10 +621,10 @@ function getMemberYoutubeVideos(member) {
     
     if (nameLower.includes('ryan') || ytUrl.includes('v1xenbeast')) {
         return [
-            { id: 'v1x_vid1', title: 'RE:Motion Performance Shop - O Começo da M3 Stage 3', duration: '18:42', views: '15K', date: 'há 1 dia', thumbnail: defaultThumbnails[0], youtubeId: 'dQw4w9WgXcQ' },
-            { id: 'v1x_vid2', title: 'Fuga com o novo GT-R de 1200cv da Oficina!', duration: '24:10', views: '28K', date: 'há 3 dias', thumbnail: defaultThumbnails[1], youtubeId: 'dQw4w9WgXcQ' },
-            { id: 'v1x_vid3', title: 'CEO Ryan Parker: Como gerenciar a melhor mecânica do Sul', duration: '32:15', views: '42K', date: 'há 5 dias', thumbnail: defaultThumbnails[2], youtubeId: 'dQw4w9WgXcQ' },
-            { id: 'v1x_vid4', title: 'GTA V RP - Modificações Insanas e Teste de Arrancada', duration: '1:05:45', views: '12K', date: 'há 1 semana', thumbnail: defaultThumbnails[3], youtubeId: 'dQw4w9WgXcQ' }
+            { id: 'v1x_vid1', title: 'Me OBRIGARAM a fazer um ROUBO IMPOSSÍVEL ☠️ - GTA RP', duration: '24:15', views: '42K', date: 'há 2 dias', thumbnail: defaultThumbnails[0], youtubeId: 'dQw4w9WgXcQ' },
+            { id: 'v1x_vid2', title: 'Me consagrei o melhor do Servidor (Illegal Racing)', duration: '32:10', views: '28K', date: 'há 4 dias', thumbnail: defaultThumbnails[1], youtubeId: 'dQw4w9WgXcQ' },
+            { id: 'v1x_vid3', title: 'Mostrando como eu uso o CONTROLE nas CORRIDAS - GTA RP', duration: '15:45', views: '18K', date: 'há 6 dias', thumbnail: defaultThumbnails[2], youtubeId: 'dQw4w9WgXcQ' },
+            { id: 'v1x_vid4', title: 'Me fizeram começar em ÚLTIMO na corrida e ainda ganhei! - GTA RP', duration: '21:30', views: '35K', date: 'há 1 semana', thumbnail: defaultThumbnails[3], youtubeId: 'dQw4w9WgXcQ' }
         ];
     }
     
@@ -632,7 +632,7 @@ function getMemberYoutubeVideos(member) {
         { id: 'gen_vid1', title: `${member.name} - Montando Stage 5 Performance no Skyline`, duration: '15:20', views: '8.4K', date: 'há 2 dias', thumbnail: defaultThumbnails[0], youtubeId: 'dQw4w9WgXcQ' },
         { id: 'gen_vid2', title: `Teste de Dyno e Ajuste Fino de Motores com ${member.name}`, duration: '20:15', views: '5.2K', date: 'há 4 dias', thumbnail: defaultThumbnails[1], youtubeId: 'dQw4w9WgXcQ' },
         { id: 'gen_vid3', title: `Dia de Trabalho na RE:Motion Performance Shop - VLOG`, duration: '12:45', views: '14K', date: 'há 6 dias', thumbnail: defaultThumbnails[2], youtubeId: 'dQw4w9WgXcQ' },
-        { id: 'gen_vid4', title: `GTA V RP: Fugas com a Equipe da Oficina - ${member.name}`, duration: '45:30', views: '11K', date: 'há 1 semana', thumbnail: defaultThumbnails[3], youtubeId: 'dQw4w9WgXcQ' }
+        { id: 'gen_vid4', title: `GTA V RP: Fugas com a Equipe da Oficina - ${member.name}`, duration: '45:30', views: '11K', date: 'há 1 week', thumbnail: defaultThumbnails[3], youtubeId: 'dQw4w9WgXcQ' }
     ];
 }
 
