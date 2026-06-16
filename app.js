@@ -520,6 +520,10 @@ function getChannelName(url, platform) {
 
 window.setLivePlatformFilter = function(platform, isIllegal) {
     currentLivePlatformFilter = platform;
+    window.activeYoutubeVideoId = null;
+    if (platform !== 'all') {
+        window.activeLivePlayerPlatform = platform;
+    }
     renderLivesScreen(isIllegal);
 };
 
