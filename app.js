@@ -1250,13 +1250,27 @@ function renderMembersScreen(searchTerm = '') {
                         <span>${dateStr}</span>
                     </div>
                 </div>
-                ${isAllowedEdit ? `
-                    <div class="member-card-actions">
-                        <button class="action-btn" onclick="event.stopPropagation(); openMemberEditModal('${m.id}')" style="width:100%; justify-content:center;">
-                            <i class="fa-solid fa-pen"></i> Editar
-                        </button>
-                    </div>
-                ` : ''}
+                ${(() => {
+                    const isOwn = (currentLoggedInMember && currentLoggedInMember.id === m.id) || (currentIllegalMember && currentIllegalMember.id === m.id);
+                    if (isOwn) {
+                        return `
+                            <div style="display: grid; width: 100%; margin-top: auto; border-top: 1px solid var(--border-dark); padding-top: 12px;">
+                                <button class="action-btn" onclick="event.stopPropagation(); openMemberEditModal('${m.id}')" style="width:100%; justify-content:center; border-color:var(--border-red); color:var(--red-primary);">
+                                    <i class="fa-solid fa-user-pen"></i> Editar Perfil
+                                </button>
+                            </div>
+                        `;
+                    } else if (isAllowedEdit) {
+                        return `
+                            <div class="member-card-actions">
+                                <button class="action-btn" onclick="event.stopPropagation(); openMemberEditModal('${m.id}')" style="width:100%; justify-content:center;">
+                                    <i class="fa-solid fa-pen"></i> Editar
+                                </button>
+                            </div>
+                        `;
+                    }
+                    return '';
+                })()}
             </div>
         `;
     }).join('');
@@ -3644,9 +3658,21 @@ window.openMemberEditModal = function(memberId = '') {
         </label>
     `).join('');
 
+    // Reset disabled states
+    document.getElementById('editMemberStatus').disabled = false;
+    document.getElementById('editMemberPassport').disabled = false;
+    document.getElementById('editMemberJoinDate').disabled = false;
+    document.getElementById('editMemberIlegal').disabled = false;
+    document.getElementById('editMemberName').disabled = false;
+
+    const loggedInId = (currentLoggedInMember ? currentLoggedInMember.id : '') || (currentIllegalMember ? currentIllegalMember.id : '');
+    const isOwnProfile = loggedInId && loggedInId === memberId;
+    const isAllowedGeneral = hasPermission('edit_members');
+    const restrictEdit = isOwnProfile && !isAllowedGeneral;
+
     if (memberId) {
-        titleEl.innerHTML = `<i class="fa-solid fa-user-pen"></i> Editar Membro`;
-        deleteBtn.style.display = 'block';
+        titleEl.innerHTML = restrictEdit ? `<i class="fa-solid fa-user-pen"></i> Editar Meu Perfil` : `<i class="fa-solid fa-user-pen"></i> Editar Membro`;
+        deleteBtn.style.display = restrictEdit ? 'none' : 'block';
 
         const member = activeMembers.find(m => m.id === memberId);
         if (member) {
@@ -3663,6 +3689,7 @@ window.openMemberEditModal = function(memberId = '') {
             const userRoles = member.role ? member.role.split(',').map(r => r.trim().toLowerCase()) : [];
             document.querySelectorAll('.edit-member-role-cb').forEach(cb => {
                 cb.checked = userRoles.includes(cb.value.toLowerCase());
+                cb.disabled = restrictEdit;
             });
 
             const hasIllegal = !!member.flagIlegal;
@@ -3673,7 +3700,15 @@ window.openMemberEditModal = function(memberId = '') {
             const userIllegalRoles = member.illegalRole ? member.illegalRole.split(',').map(r => r.trim().toLowerCase()) : [];
             document.querySelectorAll('.edit-member-illegal-role-cb').forEach(cb => {
                 cb.checked = userIllegalRoles.includes(cb.value.toLowerCase());
+                cb.disabled = restrictEdit;
             });
+
+            if (restrictEdit) {
+                document.getElementById('editMemberStatus').disabled = true;
+                document.getElementById('editMemberPassport').disabled = true;
+                document.getElementById('editMemberJoinDate').disabled = true;
+                document.getElementById('editMemberIlegal').disabled = true;
+            }
         }
     } else {
         titleEl.innerHTML = `<i class="fa-solid fa-user-plus"></i> Adicionar Membro`;
@@ -3683,10 +3718,11 @@ window.openMemberEditModal = function(memberId = '') {
         document.getElementById('editMemberAvatarUrl').value = '';
         document.getElementById('editMemberLiveUrl').value = '';
         document.getElementById('editMemberIllegalRoleGroup').style.display = 'none';
-
+        
         // Select Estagiario as default for new members
         document.querySelectorAll('.edit-member-role-cb').forEach(cb => {
             cb.checked = cb.value.toLowerCase() === 'estagiario';
+            cb.disabled = false;
         });
     }
     showModal(modalMemberEdit);
@@ -3883,7 +3919,9 @@ window.handleRecipeCardClick = function(id) {
 };
 
 window.handleMemberCardClick = function(id) {
-    if (window.isEditModeActive || hasPermission('edit_members')) {
+    const loggedInId = (currentLoggedInMember ? currentLoggedInMember.id : '') || (currentIllegalMember ? currentIllegalMember.id : '');
+    const isOwnProfile = loggedInId && loggedInId === id;
+    if (window.isEditModeActive || hasPermission('edit_members') || isOwnProfile) {
         openMemberEditModal(id);
     }
 };
