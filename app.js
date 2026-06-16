@@ -713,6 +713,14 @@ function renderLivesScreen(isIllegal) {
         }
 
         const activePlatform = window.activeLivePlayerPlatform;
+        
+        if (activePlatform === 'youtube' && !window.activeYoutubeVideoId) {
+            const videosList = getMemberYoutubeVideos(highlightedMember);
+            if (videosList && videosList.length > 0) {
+                window.activeYoutubeVideoId = videosList[0].youtubeId;
+            }
+        }
+
         let activeUrl = highlightedMember.liveUrl;
         if (activePlatform === 'kick') activeUrl = highlightedMember.kickUrl;
         if (activePlatform === 'youtube') activeUrl = highlightedMember.youtubeUrl;
