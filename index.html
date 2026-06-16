@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>RE:Motion Performance Shop — Calculadora</title>
     <meta name="description" content="Calculadora de peças, serviços e produtos da RE:Motion Performance Shop.">
-    <link rel="stylesheet" href="style.css?v=10">
+    <link rel="stylesheet" href="style.css?v=11">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link
@@ -838,9 +838,65 @@
         </div>
     </div>
 
-    <script src="data.js?v=10"></script>
-    <script src="supabase-client.js?v=10"></script>
-    <script src="app.js?v=10"></script>
+    <!-- ═══ MODAL: SCHEDULE LIVE ═══ -->
+    <div id="modalScheduleLive" class="modal-overlay">
+        <div class="modal-content">
+            <header class="modal-header">
+                <h3><i class="fa-solid fa-calendar-plus"></i> Agendar Transmissão</h3>
+                <button class="modal-close-btn">&times;</button>
+            </header>
+            <form id="formScheduleLive" class="modal-body">
+                <div class="form-group">
+                    <label for="scheduleMember">Membro</label>
+                    <select id="scheduleMember" required>
+                        <!-- Populated dynamically with activeMembers -->
+                    </select>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="scheduleDay">Dia da Semana</label>
+                        <select id="scheduleDay" required>
+                            <option value="Segunda">Segunda-feira</option>
+                            <option value="Terça">Terça-feira</option>
+                            <option value="Quarta">Quarta-feira</option>
+                            <option value="Quinta">Quinta-feira</option>
+                            <option value="Sexta">Sexta-feira</option>
+                            <option value="Sábado">Sábado</option>
+                            <option value="Domingo">Domingo</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="schedulePlatform">Plataforma</label>
+                        <select id="schedulePlatform" required>
+                            <option value="twitch">Twitch</option>
+                            <option value="youtube">YouTube</option>
+                            <option value="kick">Kick</option>
+                            <option value="tiktok">TikTok</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="scheduleStart">Hora Início</label>
+                        <input type="time" id="scheduleStart" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="scheduleEnd">Hora Término</label>
+                        <input type="time" id="scheduleEnd" required>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="scheduleTitle">Título / Jogo (Opcional)</label>
+                    <input type="text" id="scheduleTitle" placeholder="Ex: GTA RP, Tuning de Carros...">
+                </div>
+                <button type="submit" class="modal-submit-btn">Salvar na Agenda</button>
+            </form>
+        </div>
+    </div>
+
+    <script src="data.js?v=11"></script>
+    <script src="supabase-client.js?v=11"></script>
+    <script src="app.js?v=11"></script>
 </body>
 
 </html>

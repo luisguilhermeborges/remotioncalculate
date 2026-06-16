@@ -6,6 +6,11 @@ let currentSubCategory = 'list'; // Subcategories (e.g., 'list'/'roles' for memb
 let currentLoggedInMember = null; // Storing the authenticated general member session
 let cart = [];
 
+// Lives Viewer state variables
+let currentLivePlatformFilter = 'all';
+let activeLiveStreamMemberId = null;
+let livesSchedules = [];
+
 // Active collections fetched from DB/LocalStorage
 let activeComponents = [];
 let activeServices = [];
@@ -71,6 +76,7 @@ const modalImpoundedCar      = document.getElementById('modalImpoundedCar');
 const modalActionReport      = document.getElementById('modalActionReport');
 const modalEscapeCard        = document.getElementById('modalEscapeCard');
 const modalActionPreset      = document.getElementById('modalActionPreset');
+const modalScheduleLive      = document.getElementById('modalScheduleLive');
 
 const formLogin              = document.getElementById('formLogin');
 const formItemEdit           = document.getElementById('formItemEdit');
@@ -446,58 +452,429 @@ function renderIllegalMuralScreen() {
     `;
 }
 
-// ─── RENDER LIVES SCREEN ──────────────────────────────────────────────────
-function renderLivesScreen(isIllegal) {
-    itemsGrid.style.display = 'grid';
-    itemsGrid.style.gridTemplateColumns = 'repeat(auto-fill, minmax(240px, 1fr))';
-    homeContainer.style.display = 'none';
+// ─── STREAMING HELPERS & PLATFORM DETECTORS ────────────────────────────────
+function detectPlatform(url) {
+    if (!url) return 'outros';
+    const cleanUrl = url.toLowerCase();
+    if (cleanUrl.includes('twitch.tv')) return 'twitch';
+    if (cleanUrl.includes('youtube.com') || cleanUrl.includes('youtu.be')) return 'youtube';
+    if (cleanUrl.includes('kick.com')) return 'kick';
+    if (cleanUrl.includes('tiktok.com')) return 'tiktok';
+    return 'outros';
+}
 
-    const liveMembers = activeMembers.filter(m => m.status === 'Ativo' && m.liveUrl && (isIllegal ? m.flagIlegal : (m.role && m.role !== 'Agregado')));
+function getChannelName(url, platform) {
+    if (!url) return '';
+    try {
+        const cleanUrl = url.trim().replace(/\/$/, '');
+        if (platform === 'twitch') {
+            const match = cleanUrl.match(/twitch\.tv\/([a-zA-Z0-9_]+)/i);
+            return match ? match[1] : '';
+        }
+        if (platform === 'kick') {
+            const match = cleanUrl.match(/kick\.com\/([a-zA-Z0-9_]+)/i);
+            return match ? match[1] : '';
+        }
+        if (platform === 'youtube') {
+            const vMatch = cleanUrl.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([a-zA-Z0-9_-]+)/i);
+            if (vMatch) return { type: 'video', id: vMatch[1] };
+            const cMatch = cleanUrl.match(/youtube\.com\/(?:c\/|user\/|@)?([a-zA-Z0-9_-]+)/i);
+            return cMatch ? { type: 'channel', id: cMatch[1] } : { type: 'url', id: url };
+        }
+        if (platform === 'tiktok') {
+            const match = cleanUrl.match(/tiktok\.com\/@([a-zA-Z0-9_\.]+)/i);
+            return match ? match[1] : '';
+        }
+    } catch (e) {
+        console.error("Error parsing channel name:", e);
+    }
+    return url;
+}
 
-    if (liveMembers.length === 0) {
-        itemsGrid.innerHTML = `
-            <div class="empty-cart-msg" style="margin:40px 0; grid-column:1/-1; text-align:center;">
-                <i class="fa-solid fa-play" style="font-size:2rem; color:${isIllegal ? '#f59e0b' : 'var(--red-primary)'}; opacity:0.3; margin-bottom:12px;"></i>
-                <p>Nenhuma transmissão ativa no momento.</p>
-                <p style="font-size:0.8rem; color:var(--white-muted); margin-top:4px;">Configure o link da sua live nas configurações de perfil.</p>
-            </div>`;
+window.setLivePlatformFilter = function(platform, isIllegal) {
+    currentLivePlatformFilter = platform;
+    renderLivesScreen(isIllegal);
+};
+
+// ─── SCHEDULE & TIMELINE LOGIC ─────────────────────────────────────────────
+function loadSchedules() {
+    const stored = localStorage.getItem('lives_schedules');
+    if (stored) {
+        livesSchedules = JSON.parse(stored);
         return;
     }
+    
+    // Seed default schedules if empty
+    livesSchedules = [
+        { id: 'sch_1', memberId: 'mem_test_001', memberName: 'Teste Ilegal', day: 'Segunda', platform: 'twitch', start: '18:00', end: '22:00', title: 'Fugas Noturnas & Ação' },
+        { id: 'sch_2', memberId: '', memberName: 'Ryan', day: 'Terça', platform: 'youtube', start: '19:00', end: '23:00', title: 'Tuning de Stages e Testes' },
+        { id: 'sch_3', memberId: '', memberName: 'Bigas', day: 'Quarta', platform: 'kick', start: '20:00', end: '23:30', title: 'Treino de Pilotos' },
+        { id: 'sch_4', memberId: 'mem_test_001', memberName: 'Teste Ilegal', day: 'Quinta', platform: 'tiktok', start: '21:00', end: '23:00', title: 'Resenha da Oficina' },
+        { id: 'sch_5', memberId: '', memberName: 'Bigas', day: 'Sexta', platform: 'twitch', start: '18:00', end: '22:00', title: 'Ação Grande com a Facção' },
+        { id: 'sch_6', memberId: '', memberName: 'Ryan', day: 'Sábado', platform: 'youtube', start: '16:00', end: '20:00', title: 'Desafios de Arrancada' }
+    ];
+    localStorage.setItem('lives_schedules', JSON.stringify(livesSchedules));
+}
 
-    itemsGrid.innerHTML = liveMembers.map(m => {
-        const initial = m.name ? m.name.charAt(0).toUpperCase() : '?';
-        const avatarStyle = `width:80px; height:80px; border-radius:8px; border:2px solid #ef4444; position:relative; overflow:hidden; box-shadow: 0 0 10px rgba(239, 68, 68, 0.5);`;
-        
-        let avatarContent = `<span style="font-size:1.8rem; font-weight:bold; color:var(--white-main); width:100%; height:100%; display:flex; align-items:center; justify-content:center; background:var(--black-panel);">${initial}</span>`;
-        if (m.avatarUrl) {
-            avatarContent = `<img src="${m.avatarUrl}" alt="${m.name}" style="width:100%; height:100%; object-fit:cover;" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"><span style="display:none; font-size:1.8rem; font-weight:bold; color:var(--white-main); width:100%; height:100%; align-items:center; justify-content:center; background:var(--black-panel);">${initial}</span>`;
+window.openScheduleModal = function() {
+    const memberSelect = document.getElementById('scheduleMember');
+    if (memberSelect) {
+        memberSelect.innerHTML = activeMembers.map(m => `<option value="${m.id}">${m.name} (${m.passport})</option>`).join('');
+        // Add option for unregistered/guest names if admin
+        if (db.isAdminLoggedIn()) {
+            memberSelect.innerHTML += `<option value="admin_guest">Outro (Convidado Especial)</option>`;
+        }
+    }
+    showModal(modalScheduleLive);
+};
+
+// Handle schedule live submit
+const formScheduleLive = document.getElementById('formScheduleLive');
+if (formScheduleLive) {
+    formScheduleLive.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const memberId = document.getElementById('scheduleMember').value;
+        let memberName = 'Convidado';
+        if (memberId === 'admin_guest') {
+            const guestName = prompt('Digite o nome do Convidado:');
+            if (!guestName) return;
+            memberName = guestName;
+        } else {
+            const memberObj = activeMembers.find(m => m.id === memberId);
+            if (memberObj) memberName = memberObj.name;
         }
 
-        const watchUrl = m.liveUrl.startsWith('http') ? m.liveUrl : 'https://' + m.liveUrl;
+        const newSchedule = {
+            id: 'sch_' + Date.now(),
+            memberId: memberId === 'admin_guest' ? '' : memberId,
+            memberName: memberName,
+            day: document.getElementById('scheduleDay').value,
+            platform: document.getElementById('schedulePlatform').value,
+            start: document.getElementById('scheduleStart').value,
+            end: document.getElementById('scheduleEnd').value,
+            title: document.getElementById('scheduleTitle').value.trim() || 'Gameplay'
+        };
 
-        return `
-            <div class="lives-member-card" style="background:var(--black-card); border:1px solid var(--border-dark); border-radius:var(--radius-lg); padding:20px; display:flex; flex-direction:column; align-items:center; gap:12px; text-align:center; position:relative; transition:var(--transition); cursor:pointer;" onclick="window.open('${watchUrl}', '_blank')">
-                <div class="live-badge" style="position:absolute; top:12px; right:12px; background:#ef4444; color:white; font-size:0.68rem; font-weight:800; padding:2px 6px; border-radius:4px; text-transform:uppercase; letter-spacing:0.5px; display:flex; align-items:center; gap:4px; animation: live-blink 1.5s infinite;">
-                    <span style="width:6px; height:6px; background:white; border-radius:50%; display:inline-block;"></span>
-                    AO VIVO
+        livesSchedules.push(newSchedule);
+        localStorage.setItem('lives_schedules', JSON.stringify(livesSchedules));
+        
+        hideModal(modalScheduleLive);
+        formScheduleLive.reset();
+
+        const isIllegal = currentCategory === 'illegal-lives';
+        renderLivesScreen(isIllegal);
+    });
+}
+
+window.deleteSchedule = function(id, isIllegal) {
+    if (confirm('Deseja realmente remover esta transmissão agendada?')) {
+        livesSchedules = livesSchedules.filter(s => s.id !== id);
+        localStorage.setItem('lives_schedules', JSON.stringify(livesSchedules));
+        renderLivesScreen(isIllegal);
+    }
+};
+
+function getDayOrder(day) {
+    const days = ['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado', 'Domingo'];
+    return days.indexOf(day);
+}
+
+// ─── RENDER LIVES SCREEN ──────────────────────────────────────────────────
+function renderLivesScreen(isIllegal) {
+    itemsGrid.style.display = 'block';
+    homeContainer.style.display = 'none';
+
+    // Ensure schedules are loaded
+    loadSchedules();
+
+    // 1. Filter active live members by criteria and platform filter
+    const activeLives = activeMembers.filter(m => 
+        m.status === 'Ativo' && 
+        m.liveUrl && 
+        (isIllegal ? m.flagIlegal : (m.role && m.role !== 'Agregado'))
+    );
+
+    const filteredLives = activeLives.filter(m => {
+        if (currentLivePlatformFilter === 'all') return true;
+        return detectPlatform(m.liveUrl) === currentLivePlatformFilter;
+    });
+
+    // Determine current highlighted stream
+    let highlightedMember = null;
+    if (activeLiveStreamMemberId) {
+        highlightedMember = filteredLives.find(m => m.id === activeLiveStreamMemberId) || filteredLives[0];
+    } else if (filteredLives.length > 0) {
+        highlightedMember = filteredLives[0];
+    }
+
+    if (highlightedMember) {
+        activeLiveStreamMemberId = highlightedMember.id;
+    } else {
+        activeLiveStreamMemberId = null;
+    }
+
+    // 2. Build Platform Filters Bar
+    const platformFiltersHtml = `
+        <div class="platform-filters" style="margin-bottom: 24px;">
+            <button class="platform-filter-btn ${currentLivePlatformFilter === 'all' ? 'active' : ''}" data-platform="all" onclick="setLivePlatformFilter('all', ${isIllegal})">
+                <i class="fa-solid fa-play"></i> Todas
+            </button>
+            <button class="platform-filter-btn ${currentLivePlatformFilter === 'twitch' ? 'active' : ''}" data-platform="twitch" onclick="setLivePlatformFilter('twitch', ${isIllegal})">
+                <i class="fa-brands fa-twitch"></i> Twitch
+            </button>
+            <button class="platform-filter-btn ${currentLivePlatformFilter === 'youtube' ? 'active' : ''}" data-platform="youtube" onclick="setLivePlatformFilter('youtube', ${isIllegal})">
+                <i class="fa-brands fa-youtube"></i> YouTube
+            </button>
+            <button class="platform-filter-btn ${currentLivePlatformFilter === 'kick' ? 'active' : ''}" data-platform="kick" onclick="setLivePlatformFilter('kick', ${isIllegal})">
+                <i class="fa-solid fa-gamepad"></i> Kick
+            </button>
+            <button class="platform-filter-btn ${currentLivePlatformFilter === 'tiktok' ? 'active' : ''}" data-platform="tiktok" onclick="setLivePlatformFilter('tiktok', ${isIllegal})">
+                <i class="fa-brands fa-tiktok"></i> TikTok
+            </button>
+        </div>
+    `;
+
+    // 3. Highlighted Player HTML
+    let playerHtml = '';
+    if (highlightedMember) {
+        const platform = detectPlatform(highlightedMember.liveUrl);
+        const channelInfo = getChannelName(highlightedMember.liveUrl, platform);
+        const watchUrl = highlightedMember.liveUrl.startsWith('http') ? highlightedMember.liveUrl : 'https://' + highlightedMember.liveUrl;
+        
+        let embedIframe = '';
+        if (platform === 'twitch' && channelInfo) {
+            embedIframe = `<iframe src="https://player.twitch.tv/?channel=${channelInfo}&parent=${window.location.hostname}&muted=false" class="live-player-iframe" allowfullscreen></iframe>`;
+        } else if (platform === 'kick' && channelInfo) {
+            embedIframe = `<iframe src="https://player.kick.com/${channelInfo}" class="live-player-iframe" allowfullscreen></iframe>`;
+        } else if (platform === 'youtube' && channelInfo) {
+            const embedSrc = channelInfo.type === 'video' 
+                ? `https://www.youtube.com/embed/${channelInfo.id}?autoplay=1` 
+                : `https://www.youtube.com/embed/live_stream?channel=${channelInfo.id}`;
+            embedIframe = `<iframe src="${embedSrc}" class="live-player-iframe" allowfullscreen></iframe>`;
+        } else if (platform === 'tiktok' && channelInfo) {
+            const initial = highlightedMember.name ? highlightedMember.name.charAt(0).toUpperCase() : '?';
+            embedIframe = `
+                <div class="tiktok-embed-card">
+                    <div class="tiktok-embed-avatar-wrapper">
+                        <div class="tiktok-embed-avatar">
+                            ${highlightedMember.avatarUrl ? `<img src="${highlightedMember.avatarUrl}" alt="${highlightedMember.name}" onerror="this.style.display='none';">` : `<span style="font-size:2rem; font-weight:bold; color:var(--white-main); width:100%; height:100%; display:flex; align-items:center; justify-content:center; background:var(--black-panel);">${initial}</span>`}
+                        </div>
+                        <div class="live-badge" style="position:absolute; bottom:-6px; left:50%; transform:translateX(-50%); background:#fe2c55; color:white; font-size:0.6rem; font-weight:800; padding:1px 6px; border-radius:4px; animation: live-blink 1.5s infinite;">TIKTOK LIVE</div>
+                    </div>
+                    <div style="text-align:center; display:flex; flex-direction:column; gap:4px;">
+                        <h4 style="font-size:1.1rem; font-weight:bold;">@${channelInfo}</h4>
+                        <p style="font-size:0.8rem; color:var(--white-muted);">O TikTok não suporta incorporação direta de lives em outros sites.</p>
+                    </div>
+                    <a href="${watchUrl}" target="_blank" class="action-btn primary-btn" style="background:#fe2c55; border:none; color:white; font-weight:bold; padding:8px 16px; border-radius:var(--radius-sm); font-size:0.85rem; display:flex; align-items:center; gap:6px; text-decoration:none;">
+                        <i class="fa-brands fa-tiktok"></i> Assistir no TikTok
+                    </a>
                 </div>
-                <div class="member-avatar-wrapper" style="position:relative; animation: live-pulse 1.5s infinite; border-radius:8px;">
-                    <div style="${avatarStyle}">
-                        ${avatarContent}
+            `;
+        } else {
+            embedIframe = `
+                <div class="live-player-placeholder">
+                    <i class="fa-solid fa-play"></i>
+                    <div>
+                        <p style="font-weight:700; color:var(--white-main); margin-bottom:4px;">Canal Externo</p>
+                        <p style="font-size:0.82rem; color:var(--white-muted);">Esta live está hospedada em uma plataforma externa incompatível com reprodução direta.</p>
+                    </div>
+                    <a href="${watchUrl}" target="_blank" class="action-btn primary-btn" style="background:var(--red-primary); color:white; font-weight:bold; padding:8px 16px; border:none; text-decoration:none; display:inline-flex; align-items:center; gap:6px;">
+                        <i class="fa-solid fa-external-link"></i> Abrir Canal
+                    </a>
+                </div>
+            `;
+        }
+
+        const initial = highlightedMember.name ? highlightedMember.name.charAt(0).toUpperCase() : '?';
+
+        playerHtml = `
+            <div class="live-viewer-main" style="margin-bottom: 30px;">
+                <div class="live-player-wrapper">
+                    ${embedIframe}
+                </div>
+                <div class="live-player-info">
+                    <div style="display:flex; flex-direction:column; gap:16px;">
+                        <div class="live-player-header">
+                            <div class="live-player-member-avatar">
+                                ${highlightedMember.avatarUrl ? `<img src="${highlightedMember.avatarUrl}" alt="${highlightedMember.name}" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">` : ''}
+                                <span style="display:none; font-size:1.5rem; font-weight:bold; color:var(--white-main); width:100%; height:100%; align-items:center; justify-content:center; background:var(--black-panel);">${initial}</span>
+                            </div>
+                            <div class="live-player-title-block">
+                                <span class="live-player-badge"><span style="width:6px; height:6px; background:#ef4444; border-radius:50%; display:inline-block; animation: live-blink 1.5s infinite;"></span> AO VIVO</span>
+                                <h3>${highlightedMember.name}</h3>
+                                <span style="font-size:0.78rem; color:var(--white-muted); display:flex; align-items:center; gap:6px;">
+                                    <i class="fa-solid fa-shield-halved"></i> ${isIllegal ? highlightedMember.illegalRole : highlightedMember.role}
+                                </span>
+                            </div>
+                        </div>
+                        <div class="live-player-desc">
+                            Transmitindo ao vivo agora! Conecte-se e assista o dia a dia da nossa equipe diretamente na plataforma original ou utilize o player interativo ao lado.
+                        </div>
+                    </div>
+                    <div class="live-player-actions">
+                        <a href="${watchUrl}" target="_blank" class="action-btn primary-btn" style="background:${isIllegal ? '#f59e0b' : 'var(--red-primary)'}; color:${isIllegal ? 'black' : 'white'}; font-weight:bold; text-decoration:none; padding:10px 16px; font-size:0.88rem; display:inline-flex; align-items:center; gap:8px;">
+                            <i class="fa-solid fa-external-link"></i> Abrir Canal Original
+                        </a>
                     </div>
                 </div>
-                <div style="display:flex; flex-direction:column; gap:2px; width:100%;">
-                    <h4 style="font-size:0.95rem; font-weight:700; color:var(--white-main); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; width:100%;">${m.name}</h4>
-                    <span style="font-size:0.75rem; color:var(--white-muted); display:flex; align-items:center; justify-content:center; gap:4px;">
-                        <i class="fa-solid fa-shield-halved"></i> ${isIllegal ? m.illegalRole : m.role}
-                    </span>
+            </div>
+        `;
+    } else {
+        playerHtml = `
+            <div class="live-viewer-main" style="margin-bottom: 30px; grid-template-columns: 1fr;">
+                <div class="live-player-wrapper" style="padding-top: 30%; min-height: 200px;">
+                    <div class="live-player-placeholder">
+                        <i class="fa-solid fa-circle-play"></i>
+                        <h4 style="font-size:1.2rem; font-weight:800; color:var(--white-main);">Nenhuma transmissão ativa</h4>
+                        <p style="font-size:0.85rem; color:var(--white-muted); max-width:400px; line-height:1.5;">Selecione um dos canais disponíveis abaixo para iniciar a reprodução ou agende um horário na nossa linha do tempo.</p>
+                    </div>
                 </div>
-                <a href="${watchUrl}" target="_blank" onclick="event.stopPropagation();" class="action-btn primary-btn" style="width:100%; justify-content:center; background:${isIllegal ? '#f59e0b' : 'var(--red-primary)'}; color:${isIllegal ? 'black' : 'white'}; font-weight:bold; border:none; padding:8px 12px; border-radius:var(--radius-sm); font-size:0.82rem; display:flex; align-items:center; gap:6px; text-decoration:none;">
-                    <i class="fa-solid fa-play"></i> Assistir Live
-                </a>
+            </div>
+        `;
+    }
+
+    // 4. Grid of Channels HTML
+    let channelsGridHtml = '';
+    if (filteredLives.length === 0) {
+        channelsGridHtml = `
+            <div class="empty-cart-msg" style="margin:20px 0; grid-column:1/-1; text-align:center; padding:30px;">
+                <i class="fa-solid fa-play" style="font-size:2rem; color:${isIllegal ? '#f59e0b' : 'var(--red-primary)'}; opacity:0.3; margin-bottom:12px;"></i>
+                <p>Nenhuma transmissão ativa para esta plataforma no momento.</p>
             </div>`;
+    } else {
+        channelsGridHtml = filteredLives.map(m => {
+            const initial = m.name ? m.name.charAt(0).toUpperCase() : '?';
+            const avatarStyle = `width:80px; height:80px; border-radius:8px; border:2px solid ${m.id === activeLiveStreamMemberId ? (isIllegal ? '#f59e0b' : 'var(--red-primary)') : 'var(--border-dark)'}; position:relative; overflow:hidden; transition: var(--transition);`;
+            
+            let avatarContent = `<span style="font-size:1.8rem; font-weight:bold; color:var(--white-main); width:100%; height:100%; display:flex; align-items:center; justify-content:center; background:var(--black-panel);">${initial}</span>`;
+            if (m.avatarUrl) {
+                avatarContent = `<img src="${m.avatarUrl}" alt="${m.name}" style="width:100%; height:100%; object-fit:cover;" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"><span style="display:none; font-size:1.8rem; font-weight:bold; color:var(--white-main); width:100%; height:100%; align-items:center; justify-content:center; background:var(--black-panel);">${initial}</span>`;
+            }
+
+            const platform = detectPlatform(m.liveUrl);
+            const platformIcons = {
+                twitch: '<i class="fa-brands fa-twitch" style="color:#9146ff;" title="Twitch"></i>',
+                youtube: '<i class="fa-brands fa-youtube" style="color:#ff0000;" title="YouTube"></i>',
+                kick: '<i class="fa-solid fa-gamepad" style="color:#53fc18;" title="Kick"></i>',
+                tiktok: '<i class="fa-brands fa-tiktok" style="color:#fe2c55;" title="TikTok"></i>',
+                outros: '<i class="fa-solid fa-play" style="color:var(--white-dim);" title="Live"></i>'
+            };
+
+            return `
+                <div class="lives-member-card ${m.id === activeLiveStreamMemberId ? 'active-highlight' : ''}" style="background:var(--black-card); border:1px solid ${m.id === activeLiveStreamMemberId ? (isIllegal ? '#f59e0b' : 'var(--red-primary)') : 'var(--border-dark)'}; border-radius:var(--radius-lg); padding:20px; display:flex; flex-direction:column; align-items:center; gap:12px; text-align:center; position:relative; transition:var(--transition); cursor:pointer;" onclick="window.activeLiveStreamMemberId = '${m.id}'; renderLivesScreen(${isIllegal});">
+                    <div class="live-badge" style="position:absolute; top:12px; right:12px; background:#ef4444; color:white; font-size:0.68rem; font-weight:800; padding:2px 6px; border-radius:4px; text-transform:uppercase; letter-spacing:0.5px; display:flex; align-items:center; gap:4px; animation: live-blink 1.5s infinite;">
+                        <span style="width:6px; height:6px; background:white; border-radius:50%; display:inline-block;"></span>
+                        AO VIVO
+                    </div>
+                    <div class="member-avatar-wrapper" style="position:relative; animation: live-pulse 1.5s infinite; border-radius:8px;">
+                        <div style="${avatarStyle}">
+                            ${avatarContent}
+                        </div>
+                    </div>
+                    <div style="display:flex; flex-direction:column; gap:2px; width:100%;">
+                        <h4 style="font-size:0.95rem; font-weight:700; color:var(--white-main); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; width:100%; display:flex; align-items:center; justify-content:center; gap:6px;">
+                            ${m.name} ${platformIcons[platform]}
+                        </h4>
+                        <span style="font-size:0.75rem; color:var(--white-muted); display:flex; align-items:center; justify-content:center; gap:4px;">
+                            <i class="fa-solid fa-shield-halved"></i> ${isIllegal ? m.illegalRole : m.role}
+                        </span>
+                    </div>
+                    <button class="action-btn primary-btn" style="width:100%; justify-content:center; background:${isIllegal ? 'rgba(245,158,11,0.08)' : 'var(--black-panel)'}; color:${isIllegal ? '#f59e0b' : 'var(--white-main)'}; font-weight:bold; border:1px solid ${isIllegal ? 'rgba(245,158,11,0.25)' : 'var(--border-dark)'}; padding:8px 12px; border-radius:var(--radius-sm); font-size:0.82rem; display:flex; align-items:center; gap:6px;">
+                        <i class="fa-solid fa-desktop"></i> Ver no Painel
+                    </button>
+                </div>`;
+        }).join('');
+    }
+
+    // 5. Timeline Weekly Grid HTML
+    const canSchedule = db.isAdminLoggedIn() || currentLoggedInMember !== null || currentIllegalMember !== null;
+    const weekdays = ['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado', 'Domingo'];
+    
+    // Sort schedules by time
+    const sortedSchedules = [...livesSchedules].sort((a, b) => a.start.localeCompare(b.start));
+
+    // Get today's day of week in Portuguese
+    const dayNamesBr = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
+    const todayName = dayNamesBr[new Date().getDay()];
+
+    const timelineGridHtml = weekdays.map(day => {
+        const daySchedules = sortedSchedules.filter(s => s.day.toLowerCase() === day.toLowerCase() || (day === 'Segunda' && s.day === 'Segunda-feira')); // match segment or full word
+        const isToday = todayName.toLowerCase() === day.toLowerCase() || (day === 'Segunda' && todayName === 'Segunda-feira');
+        
+        let schedulesListHtml = '';
+        if (daySchedules.length === 0) {
+            schedulesListHtml = `<div class="timeline-empty-day">Nenhuma live agendada</div>`;
+        } else {
+            schedulesListHtml = daySchedules.map(s => {
+                const canDelete = db.isAdminLoggedIn() || (currentLoggedInMember && currentLoggedInMember.id === s.memberId) || (currentIllegalMember && currentIllegalMember.id === s.memberId);
+                const platformIconClass = {
+                    twitch: 'fa-brands fa-twitch',
+                    youtube: 'fa-brands fa-youtube',
+                    kick: 'fa-solid fa-gamepad',
+                    tiktok: 'fa-brands fa-tiktok'
+                }[s.platform] || 'fa-solid fa-play';
+
+                return `
+                    <div class="timeline-schedule-card">
+                        ${canDelete ? `<button class="timeline-delete-btn" onclick="deleteSchedule('${s.id}', ${isIllegal})" title="Remover"><i class="fa-solid fa-trash"></i></button>` : ''}
+                        <div class="timeline-card-header">
+                            <span class="timeline-card-time"><i class="fa-regular fa-clock"></i> ${s.start} - ${s.end}</span>
+                            <span class="timeline-card-platform platform-${s.platform}"><i class="${platformIconClass}"></i></span>
+                        </div>
+                        <div class="timeline-card-member">${s.memberName}</div>
+                        <div class="timeline-card-title" title="${s.title}">${s.title}</div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        return `
+            <div class="timeline-day-col ${isToday ? 'today' : ''}">
+                <div class="timeline-day-name">
+                    ${isToday ? '<i class="fa-solid fa-star" style="font-size:0.75rem;"></i>' : ''}
+                    ${day}
+                </div>
+                <div class="timeline-schedule-list">
+                    ${schedulesListHtml}
+                </div>
+            </div>
+        `;
     }).join('');
+
+    const timelineHtml = `
+        <div class="timeline-section" style="margin-top: 30px;">
+            <div class="timeline-header">
+                <h3><i class="fa-solid fa-calendar-days"></i> Linha do Tempo de Transmissões</h3>
+                ${canSchedule ? `
+                    <button class="action-btn" id="btnOpenNewSchedule" onclick="openScheduleModal()" style="background:rgba(255,255,255,0.05); border-color:var(--border-dark); color:var(--white-main); padding:6px 12px; font-weight:600; font-size:0.8rem;">
+                        <i class="fa-solid fa-plus"></i> Agendar Horário
+                    </button>
+                ` : ''}
+            </div>
+            <div class="timeline-grid">
+                ${timelineGridHtml}
+            </div>
+        </div>
+    `;
+
+    // 6. Final Assemble
+    itemsGrid.innerHTML = `
+        <div class="lives-layout">
+            ${platformFiltersHtml}
+            ${playerHtml}
+            <div>
+                <h3 style="font-family:'Rajdhani', sans-serif; font-size:1.2rem; font-weight:700; text-transform:uppercase; letter-spacing:1px; margin-bottom:15px; color:var(--white-main); display:flex; align-items:center; gap:8px;">
+                    <i class="fa-solid fa-satellite-dish"></i> Transmissões Disponíveis (${filteredLives.length})
+                </h3>
+                <div class="lives-grid" style="display:grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap:20px;">
+                    ${channelsGridHtml}
+                </div>
+            </div>
+            ${timelineHtml}
+        </div>
+    `;
 }
+
 
 // ─── RENDER HOME SCREEN & MURAL ───────────────────────────────────────────
 function renderHomeScreen() {
