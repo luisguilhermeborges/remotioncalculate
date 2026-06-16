@@ -609,30 +609,23 @@ function getDayOrder(day) {
 // ─── RENDER LIVES SCREEN ──────────────────────────────────────────────────
 // ─── YOUTUBE VIDEOS MOCK GENERATOR ─────────────────────────────────────────
 function getMemberYoutubeVideos(member) {
-    const defaultThumbnails = [
-        'https://images.unsplash.com/photo-1617814076367-b759c7d7e738?q=80&w=400&auto=format&fit=crop',
-        'https://images.unsplash.com/photo-1618843479313-40f8afb4b4d8?q=80&w=400&auto=format&fit=crop',
-        'https://images.unsplash.com/photo-1568605117036-5fe5e7bab0b7?q=80&w=400&auto=format&fit=crop',
-        'https://images.unsplash.com/photo-1542751371-adc38448a05e?q=80&w=400&auto=format&fit=crop'
-    ];
-    
     const nameLower = (member.name || '').toLowerCase();
     const ytUrl = (member.youtubeUrl || '').toLowerCase();
     
     if (nameLower.includes('ryan') || ytUrl.includes('v1xenbeast')) {
         return [
-            { id: 'v1x_vid1', title: 'Me OBRIGARAM a fazer um ROUBO IMPOSSÍVEL ☠️ - GTA RP', duration: '24:15', views: '42K', date: 'há 2 dias', thumbnail: defaultThumbnails[0], youtubeId: 'kYJ-w2Yw2-s' },
-            { id: 'v1x_vid2', title: 'Me consagrei o melhor do Servidor (Illegal Racing)', duration: '32:10', views: '28K', date: 'há 4 dias', thumbnail: defaultThumbnails[1], youtubeId: 'Jb-vVjY4CjQ' },
-            { id: 'v1x_vid3', title: 'Mostrando como eu uso o CONTROLE nas CORRIDAS - GTA RP', duration: '15:45', views: '18K', date: 'há 6 dias', thumbnail: defaultThumbnails[2], youtubeId: 'R9H7n6wS644' },
-            { id: 'v1x_vid4', title: 'Me fizeram começar em ÚLTIMO na corrida e ainda ganhei! - GTA RP', duration: '21:30', views: '35K', date: 'há 1 semana', thumbnail: defaultThumbnails[3], youtubeId: 'R9K15qgWbQ4' }
+            { id: 'v1x_vid1', title: 'Me OBRIGARAM a fazer um ROUBO IMPOSSÍVEL ☠️ - GTA RP', duration: '24:15', views: '42K', date: 'há 2 dias', thumbnail: 'https://img.youtube.com/vi/kYJ-w2Yw2-s/mqdefault.jpg', youtubeId: 'kYJ-w2Yw2-s' },
+            { id: 'v1x_vid2', title: 'Me consagrei o melhor do Servidor (Illegal Racing)', duration: '32:10', views: '28K', date: 'há 4 dias', thumbnail: 'https://img.youtube.com/vi/Jb-vVjY4CjQ/mqdefault.jpg', youtubeId: 'Jb-vVjY4CjQ' },
+            { id: 'v1x_vid3', title: 'Mostrando como eu uso o CONTROLE nas CORRIDAS - GTA RP', duration: '15:45', views: '18K', date: 'há 6 dias', thumbnail: 'https://img.youtube.com/vi/R9H7n6wS644/mqdefault.jpg', youtubeId: 'R9H7n6wS644' },
+            { id: 'v1x_vid4', title: 'Me fizeram começar em ÚLTIMO na corrida e ainda ganhei! - GTA RP', duration: '21:30', views: '35K', date: 'há 1 semana', thumbnail: 'https://img.youtube.com/vi/R9K15qgWbQ4/mqdefault.jpg', youtubeId: 'R9K15qgWbQ4' }
         ];
     }
     
     return [
-        { id: 'gen_vid1', title: `${member.name} - Montando Stage 5 Performance no Skyline`, duration: '15:20', views: '8.4K', date: 'há 2 dias', thumbnail: defaultThumbnails[0], youtubeId: 'dQw4w9WgXcQ' },
-        { id: 'gen_vid2', title: `Teste de Dyno e Ajuste Fino de Motores com ${member.name}`, duration: '20:15', views: '5.2K', date: 'há 4 dias', thumbnail: defaultThumbnails[1], youtubeId: 'dQw4w9WgXcQ' },
-        { id: 'gen_vid3', title: `Dia de Trabalho na RE:Motion Performance Shop - VLOG`, duration: '12:45', views: '14K', date: 'há 6 dias', thumbnail: defaultThumbnails[2], youtubeId: 'dQw4w9WgXcQ' },
-        { id: 'gen_vid4', title: `GTA V RP: Fugas com a Equipe da Oficina - ${member.name}`, duration: '45:30', views: '11K', date: 'há 1 week', thumbnail: defaultThumbnails[3], youtubeId: 'dQw4w9WgXcQ' }
+        { id: 'gen_vid1', title: `${member.name} - Montando Stage 5 Performance no Skyline`, duration: '15:20', views: '8.4K', date: 'há 2 dias', thumbnail: 'https://img.youtube.com/vi/dQw4w9WgXcQ/mqdefault.jpg', youtubeId: 'dQw4w9WgXcQ' },
+        { id: 'gen_vid2', title: `Teste de Dyno e Ajuste Fino de Motores com ${member.name}`, duration: '20:15', views: '5.2K', date: 'há 4 dias', thumbnail: 'https://img.youtube.com/vi/dQw4w9WgXcQ/mqdefault.jpg', youtubeId: 'dQw4w9WgXcQ' },
+        { id: 'gen_vid3', title: `Dia de Trabalho na RE:Motion Performance Shop - VLOG`, duration: '12:45', views: '14K', date: 'há 6 dias', thumbnail: 'https://img.youtube.com/vi/dQw4w9WgXcQ/mqdefault.jpg', youtubeId: 'dQw4w9WgXcQ' },
+        { id: 'gen_vid4', title: `GTA V RP: Fugas com a Equipe da Oficina - ${member.name}`, duration: '45:30', views: '11K', date: 'há 1 week', thumbnail: 'https://img.youtube.com/vi/dQw4w9WgXcQ/mqdefault.jpg', youtubeId: 'dQw4w9WgXcQ' }
     ];
 }
 
@@ -860,7 +853,7 @@ function renderLivesScreen(isIllegal) {
                     </h3>
                     <div class="youtube-videos-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 20px;">
                         ${videosList.map(v => `
-                            <div class="youtube-video-card" style="background: var(--black-card); border: 1px solid var(--border-dark); border-radius: var(--radius-md); overflow: hidden; display: flex; flex-direction: column; cursor: pointer; transition: var(--transition);" onclick="playYoutubeVideo('${v.youtubeId}', ${isIllegal})">
+                            <div class="youtube-video-card" style="background: var(--black-card); border: 1px solid var(--border-dark); border-radius: var(--radius-md); overflow: hidden; display: flex; flex-direction: column; cursor: pointer; transition: var(--transition);" onclick="playYoutubeVideo('${v.youtubeId}', ${!!isIllegal})">
                                 <div class="youtube-video-thumb-wrapper" style="position: relative; width: 100%; padding-top: 56.25%; overflow: hidden; background:#000;">
                                     <img src="${v.thumbnail}" alt="${v.title}" style="position: absolute; top:0; left:0; width:100%; height:100%; object-fit: cover; transition: var(--transition);">
                                     <span style="position: absolute; bottom: 8px; right: 8px; background: rgba(0,0,0,0.8); color: white; font-size: 0.75rem; padding: 2px 6px; border-radius: 2px; font-weight: 600;">${v.duration}</span>
