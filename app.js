@@ -222,6 +222,33 @@ async function loadData() {
         updateStatusBadge('local');
     }
 
+    // Clean up duplicate Ryan Parker (456)
+    let ryanSyncChanged = false;
+    const duplicates = activeMembers.filter(m => m.passport === '456' || m.id === 'mem_ryan_001');
+    if (duplicates.length > 0) {
+        ryanSyncChanged = true;
+        for (const dup of duplicates) {
+            await db.deleteMember(dup.id);
+        }
+        activeMembers = activeMembers.filter(m => m.passport !== '456' && m.id !== 'mem_ryan_001');
+    }
+    
+    // Find the main Ryan Parker (M0061) and assign his stream links
+    const mainRyan = activeMembers.find(m => m.passport === 'M0061' || m.name === 'Ryan Parker');
+    if (mainRyan && (!mainRyan.youtubeUrl || !mainRyan.kickUrl || mainRyan.name === 'Ryan' || mainRyan.liveUrl !== 'https://www.twitch.tv/v1xenbeast')) {
+        mainRyan.name = 'Ryan Parker';
+        mainRyan.liveUrl = 'https://www.twitch.tv/v1xenbeast';
+        mainRyan.youtubeUrl = 'https://www.youtube.com/@v1xenbeast';
+        mainRyan.kickUrl = 'https://kick.com/v1xenbeast';
+        await db.saveMember(mainRyan);
+        ryanSyncChanged = true;
+    }
+    
+    if (ryanSyncChanged) {
+        // reload members list
+        activeMembers = await db.getMembers();
+    }
+
     updateCart();
     renderItems();
 }
@@ -580,6 +607,43 @@ function getDayOrder(day) {
 }
 
 // ─── RENDER LIVES SCREEN ──────────────────────────────────────────────────
+// ─── YOUTUBE VIDEOS MOCK GENERATOR ─────────────────────────────────────────
+function getMemberYoutubeVideos(member) {
+    const defaultThumbnails = [
+        'https://images.unsplash.com/photo-1617814076367-b759c7d7e738?q=80&w=400&auto=format&fit=crop',
+        'https://images.unsplash.com/photo-1618843479313-40f8afb4b4d8?q=80&w=400&auto=format&fit=crop',
+        'https://images.unsplash.com/photo-1568605117036-5fe5e7bab0b7?q=80&w=400&auto=format&fit=crop',
+        'https://images.unsplash.com/photo-1542751371-adc38448a05e?q=80&w=400&auto=format&fit=crop'
+    ];
+    
+    const nameLower = (member.name || '').toLowerCase();
+    const ytUrl = (member.youtubeUrl || '').toLowerCase();
+    
+    if (nameLower.includes('ryan') || ytUrl.includes('v1xenbeast')) {
+        return [
+            { id: 'v1x_vid1', title: 'RE:Motion Performance Shop - O Começo da M3 Stage 3', duration: '18:42', views: '15K', date: 'há 1 dia', thumbnail: defaultThumbnails[0], youtubeId: 'dQw4w9WgXcQ' },
+            { id: 'v1x_vid2', title: 'Fuga com o novo GT-R de 1200cv da Oficina!', duration: '24:10', views: '28K', date: 'há 3 dias', thumbnail: defaultThumbnails[1], youtubeId: 'dQw4w9WgXcQ' },
+            { id: 'v1x_vid3', title: 'CEO Ryan Parker: Como gerenciar a melhor mecânica do Sul', duration: '32:15', views: '42K', date: 'há 5 dias', thumbnail: defaultThumbnails[2], youtubeId: 'dQw4w9WgXcQ' },
+            { id: 'v1x_vid4', title: 'GTA V RP - Modificações Insanas e Teste de Arrancada', duration: '1:05:45', views: '12K', date: 'há 1 semana', thumbnail: defaultThumbnails[3], youtubeId: 'dQw4w9WgXcQ' }
+        ];
+    }
+    
+    return [
+        { id: 'gen_vid1', title: `${member.name} - Montando Stage 5 Performance no Skyline`, duration: '15:20', views: '8.4K', date: 'há 2 dias', thumbnail: defaultThumbnails[0], youtubeId: 'dQw4w9WgXcQ' },
+        { id: 'gen_vid2', title: `Teste de Dyno e Ajuste Fino de Motores com ${member.name}`, duration: '20:15', views: '5.2K', date: 'há 4 dias', thumbnail: defaultThumbnails[1], youtubeId: 'dQw4w9WgXcQ' },
+        { id: 'gen_vid3', title: `Dia de Trabalho na RE:Motion Performance Shop - VLOG`, duration: '12:45', views: '14K', date: 'há 6 dias', thumbnail: defaultThumbnails[2], youtubeId: 'dQw4w9WgXcQ' },
+        { id: 'gen_vid4', title: `GTA V RP: Fugas com a Equipe da Oficina - ${member.name}`, duration: '45:30', views: '11K', date: 'há 1 semana', thumbnail: defaultThumbnails[3], youtubeId: 'dQw4w9WgXcQ' }
+    ];
+}
+
+window.playYoutubeVideo = function(videoId, isIllegal) {
+    window.activeYoutubeVideoId = videoId;
+    window.activeLivePlayerPlatform = 'youtube';
+    const isIllegalBool = isIllegal === true || isIllegal === 'true';
+    renderLivesScreen(isIllegalBool);
+};
+
+// ─── RENDER LIVES SCREEN ──────────────────────────────────────────────────
 function renderLivesScreen(isIllegal) {
     itemsGrid.style.display = 'block';
     homeContainer.style.display = 'none';
@@ -590,13 +654,17 @@ function renderLivesScreen(isIllegal) {
     // 1. Filter active live members by criteria and platform filter
     const activeLives = activeMembers.filter(m => 
         m.status === 'Ativo' && 
-        m.liveUrl && 
+        (m.liveUrl || m.kickUrl || m.youtubeUrl || m.tiktokUrl) && 
         (isIllegal ? m.flagIlegal : (m.role && m.role !== 'Agregado'))
     );
 
     const filteredLives = activeLives.filter(m => {
         if (currentLivePlatformFilter === 'all') return true;
-        return detectPlatform(m.liveUrl) === currentLivePlatformFilter;
+        if (currentLivePlatformFilter === 'twitch') return !!m.liveUrl;
+        if (currentLivePlatformFilter === 'youtube') return !!m.youtubeUrl;
+        if (currentLivePlatformFilter === 'kick') return !!m.kickUrl;
+        if (currentLivePlatformFilter === 'tiktok') return !!m.tiktokUrl;
+        return false;
     });
 
     // Determine current highlighted stream
@@ -636,22 +704,43 @@ function renderLivesScreen(isIllegal) {
 
     // 3. Highlighted Player HTML
     let playerHtml = '';
+    let youtubeVideosGridHtml = '';
+
     if (highlightedMember) {
-        const platform = detectPlatform(highlightedMember.liveUrl);
-        const channelInfo = getChannelName(highlightedMember.liveUrl, platform);
-        const watchUrl = highlightedMember.liveUrl.startsWith('http') ? highlightedMember.liveUrl : 'https://' + highlightedMember.liveUrl;
+        // Find all available platforms for the highlighted member
+        const availablePlatforms = [];
+        if (highlightedMember.liveUrl) availablePlatforms.push('twitch');
+        if (highlightedMember.kickUrl) availablePlatforms.push('kick');
+        if (highlightedMember.youtubeUrl) availablePlatforms.push('youtube');
+        if (highlightedMember.tiktokUrl) availablePlatforms.push('tiktok');
+
+        // Set default player platform if not active or not supported
+        if (!window.activeLivePlayerPlatform || !availablePlatforms.includes(window.activeLivePlayerPlatform)) {
+            window.activeLivePlayerPlatform = availablePlatforms[0] || 'twitch';
+        }
+
+        const activePlatform = window.activeLivePlayerPlatform;
+        let activeUrl = highlightedMember.liveUrl;
+        if (activePlatform === 'kick') activeUrl = highlightedMember.kickUrl;
+        if (activePlatform === 'youtube') activeUrl = highlightedMember.youtubeUrl;
+        if (activePlatform === 'tiktok') activeUrl = highlightedMember.tiktokUrl;
+
+        const channelInfo = getChannelName(activeUrl, activePlatform);
+        const watchUrl = activeUrl.startsWith('http') ? activeUrl : 'https://' + activeUrl;
         
         let embedIframe = '';
-        if (platform === 'twitch' && channelInfo) {
+        if (window.activeYoutubeVideoId && activePlatform === 'youtube') {
+            embedIframe = `<iframe src="https://www.youtube.com/embed/${window.activeYoutubeVideoId}?autoplay=1" class="live-player-iframe" allowfullscreen></iframe>`;
+        } else if (activePlatform === 'twitch' && channelInfo) {
             embedIframe = `<iframe src="https://player.twitch.tv/?channel=${channelInfo}&parent=${window.location.hostname}&muted=false" class="live-player-iframe" allowfullscreen></iframe>`;
-        } else if (platform === 'kick' && channelInfo) {
+        } else if (activePlatform === 'kick' && channelInfo) {
             embedIframe = `<iframe src="https://player.kick.com/${channelInfo}" class="live-player-iframe" allowfullscreen></iframe>`;
-        } else if (platform === 'youtube' && channelInfo) {
+        } else if (activePlatform === 'youtube' && channelInfo) {
             const embedSrc = channelInfo.type === 'video' 
                 ? `https://www.youtube.com/embed/${channelInfo.id}?autoplay=1` 
                 : `https://www.youtube.com/embed/live_stream?channel=${channelInfo.id}`;
             embedIframe = `<iframe src="${embedSrc}" class="live-player-iframe" allowfullscreen></iframe>`;
-        } else if (platform === 'tiktok' && channelInfo) {
+        } else if (activePlatform === 'tiktok' && channelInfo) {
             const initial = highlightedMember.name ? highlightedMember.name.charAt(0).toUpperCase() : '?';
             embedIframe = `
                 <div class="tiktok-embed-card">
@@ -687,6 +776,39 @@ function renderLivesScreen(isIllegal) {
 
         const initial = highlightedMember.name ? highlightedMember.name.charAt(0).toUpperCase() : '?';
 
+        // Build player platform selectors
+        const sourceButtonsHtml = availablePlatforms.map(p => {
+            const isActive = activePlatform === p;
+            const iconMap = {
+                twitch: '<i class="fa-brands fa-twitch"></i> Twitch',
+                kick: '<i class="fa-solid fa-gamepad"></i> Kick',
+                youtube: '<i class="fa-brands fa-youtube"></i> YouTube',
+                tiktok: '<i class="fa-brands fa-tiktok"></i> TikTok'
+            };
+            const colorMap = {
+                twitch: '#9146ff',
+                kick: '#53fc18',
+                youtube: '#ff0000',
+                tiktok: '#fe2c55'
+            };
+            
+            return `
+                <button class="action-btn" style="border-color:${isActive ? colorMap[p] : 'var(--border-dark)'}; background:${isActive ? 'rgba(255,255,255,0.08)' : 'transparent'}; color:${isActive ? 'var(--white-main)' : 'var(--white-muted)'}; padding: 6px 12px; font-size: 0.8rem; font-weight:600; display:flex; align-items:center; gap:6px;" onclick="window.activeLivePlayerPlatform = '${p}'; window.activeYoutubeVideoId = null; renderLivesScreen(${isIllegal});">
+                    <span style="color:${colorMap[p]}">${iconMap[p]}</span>
+                </button>
+            `;
+        }).join('');
+
+        // Status Badge (AO VIVO vs OFFLINE)
+        const isOnline = !!highlightedMember.isLive;
+        const statusBadgeHtml = isOnline 
+            ? `<span class="live-player-badge" style="background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3); color: #ef4444; font-weight:800; font-size:0.7rem; padding:3px 8px; border-radius:4px; display:inline-flex; align-items:center; gap:6px; letter-spacing:0.5px;">
+                 <span style="width:6px; height:6px; background:#ef4444; border-radius:50%; display:inline-block; animation: live-blink 1.5s infinite;"></span> AO VIVO
+               </span>`
+            : `<span class="live-player-badge offline" style="background: rgba(255, 255, 255, 0.05); border: 1px solid var(--border-dark); color: var(--white-muted); font-weight:800; font-size:0.7rem; padding:3px 8px; border-radius:4px; display:inline-flex; align-items:center; gap:6px; letter-spacing:0.5px;">
+                 <span style="width:6px; height:6px; background:#9ca3af; border-radius:50%; display:inline-block;"></span> OFFLINE
+               </span>`;
+
         playerHtml = `
             <div class="live-viewer-main" style="margin-bottom: 30px;">
                 <div class="live-player-wrapper">
@@ -700,18 +822,26 @@ function renderLivesScreen(isIllegal) {
                                 <span style="display:none; font-size:1.5rem; font-weight:bold; color:var(--white-main); width:100%; height:100%; align-items:center; justify-content:center; background:var(--black-panel);">${initial}</span>
                             </div>
                             <div class="live-player-title-block">
-                                <span class="live-player-badge"><span style="width:6px; height:6px; background:#ef4444; border-radius:50%; display:inline-block; animation: live-blink 1.5s infinite;"></span> AO VIVO</span>
+                                ${statusBadgeHtml}
                                 <h3>${highlightedMember.name}</h3>
                                 <span style="font-size:0.78rem; color:var(--white-muted); display:flex; align-items:center; gap:6px;">
-                                    <i class="fa-solid fa-shield-halved"></i> ${isIllegal ? highlightedMember.illegalRole : highlightedMember.role}
+                                    <i class="fa-solid fa-shield-halved"></i> ${isIllegal ? (highlightedMember.illegalRole || 'Membro') : highlightedMember.role}
                                 </span>
                             </div>
                         </div>
-                        <div class="live-player-desc">
-                            Transmitindo ao vivo agora! Conecte-se e assista o dia a dia da nossa equipe diretamente na plataforma original ou utilize o player interativo ao lado.
+                        
+                        <div style="display:flex; flex-direction:column; gap:8px;">
+                            <span style="font-size:0.75rem; text-transform:uppercase; font-weight:700; color:var(--white-muted); letter-spacing:0.5px;">Selecionar Plataforma</span>
+                            <div style="display:flex; flex-wrap:wrap; gap:8px;">
+                                ${sourceButtonsHtml}
+                            </div>
+                        </div>
+
+                        <div class="live-player-desc" style="font-size:0.88rem; line-height:1.5; color:var(--white-muted);">
+                            ${isOnline ? 'Transmitindo ao vivo agora! Conecte-se e assista o dia a dia da nossa equipe diretamente na plataforma original ou use o player interativo.' : 'Este streamer está offline no momento. Você ainda pode visitar suas redes e canais oficiais nos botões acima ou reproduzir os vídeos do canal do YouTube listados logo abaixo.'}
                         </div>
                     </div>
-                    <div class="live-player-actions">
+                    <div class="live-player-actions" style="margin-top:auto; padding-top:15px;">
                         <a href="${watchUrl}" target="_blank" class="action-btn primary-btn" style="background:${isIllegal ? '#f59e0b' : 'var(--red-primary)'}; color:${isIllegal ? 'black' : 'white'}; font-weight:bold; text-decoration:none; padding:10px 16px; font-size:0.88rem; display:inline-flex; align-items:center; gap:8px;">
                             <i class="fa-solid fa-external-link"></i> Abrir Canal Original
                         </a>
@@ -719,6 +849,37 @@ function renderLivesScreen(isIllegal) {
                 </div>
             </div>
         `;
+
+        // Render YouTube channel videos if they have a youtubeUrl
+        if (highlightedMember.youtubeUrl) {
+            const videosList = getMemberYoutubeVideos(highlightedMember);
+            youtubeVideosGridHtml = `
+                <div class="youtube-videos-section" style="margin-top: 35px; margin-bottom: 35px; border-top: 1px solid var(--border-dark); padding-top: 24px;">
+                    <h3 style="font-family:'Rajdhani', sans-serif; font-size: 1.25rem; font-weight: 700; text-transform:uppercase; letter-spacing:1px; color: var(--white-main); margin-bottom: 20px; display: flex; align-items: center; gap: 8px;">
+                        <i class="fa-brands fa-youtube" style="color: #ff0000; font-size: 1.4rem;"></i> Vídeos Recentes — ${highlightedMember.name}
+                    </h3>
+                    <div class="youtube-videos-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 20px;">
+                        ${videosList.map(v => `
+                            <div class="youtube-video-card" style="background: var(--black-card); border: 1px solid var(--border-dark); border-radius: var(--radius-md); overflow: hidden; display: flex; flex-direction: column; cursor: pointer; transition: var(--transition);" onclick="playYoutubeVideo('${v.youtubeId}', ${isIllegal})">
+                                <div class="youtube-video-thumb-wrapper" style="position: relative; width: 100%; padding-top: 56.25%; overflow: hidden; background:#000;">
+                                    <img src="${v.thumbnail}" alt="${v.title}" style="position: absolute; top:0; left:0; width:100%; height:100%; object-fit: cover; transition: var(--transition);">
+                                    <span style="position: absolute; bottom: 8px; right: 8px; background: rgba(0,0,0,0.8); color: white; font-size: 0.75rem; padding: 2px 6px; border-radius: 2px; font-weight: 600;">${v.duration}</span>
+                                    <div class="play-overlay" style="position: absolute; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.4); display:flex; align-items:center; justify-content:center; opacity:0; transition: var(--transition);">
+                                        <i class="fa-brands fa-youtube" style="color:#ff0000; font-size:2.5rem;"></i>
+                                    </div>
+                                </div>
+                                <div class="youtube-video-body" style="padding: 12px; display: flex; flex-direction: column; gap: 6px; flex: 1;">
+                                    <h4 style="font-size: 0.88rem; font-weight: 600; line-height: 1.4; color: var(--white-main); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; text-overflow: ellipsis; height: 2.8em;" title="${v.title}">${v.title}</h4>
+                                    <div style="font-size: 0.78rem; color: var(--white-muted); margin-top: auto;">
+                                        <span>${v.views} visualizações</span> • <span>${v.date}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+        }
     } else {
         playerHtml = `
             <div class="live-viewer-main" style="margin-bottom: 30px; grid-template-columns: 1fr;">
@@ -744,14 +905,16 @@ function renderLivesScreen(isIllegal) {
     } else {
         channelsGridHtml = filteredLives.map(m => {
             const initial = m.name ? m.name.charAt(0).toUpperCase() : '?';
-            const avatarStyle = `width:80px; height:80px; border-radius:8px; border:2px solid ${m.id === activeLiveStreamMemberId ? (isIllegal ? '#f59e0b' : 'var(--red-primary)') : 'var(--border-dark)'}; position:relative; overflow:hidden; transition: var(--transition);`;
+            const isHighlighted = m.id === activeLiveStreamMemberId;
+            const avatarStyle = `width:80px; height:80px; border-radius:8px; border:2px solid ${isHighlighted ? (isIllegal ? '#f59e0b' : 'var(--red-primary)') : 'var(--border-dark)'}; position:relative; overflow:hidden; transition: var(--transition);`;
             
             let avatarContent = `<span style="font-size:1.8rem; font-weight:bold; color:var(--white-main); width:100%; height:100%; display:flex; align-items:center; justify-content:center; background:var(--black-panel);">${initial}</span>`;
             if (m.avatarUrl) {
                 avatarContent = `<img src="${m.avatarUrl}" alt="${m.name}" style="width:100%; height:100%; object-fit:cover;" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"><span style="display:none; font-size:1.8rem; font-weight:bold; color:var(--white-main); width:100%; height:100%; align-items:center; justify-content:center; background:var(--black-panel);">${initial}</span>`;
             }
 
-            const platform = detectPlatform(m.liveUrl);
+            // Detect primary platform for the icon display
+            const primaryPlatform = m.liveUrl ? 'twitch' : (m.kickUrl ? 'kick' : (m.youtubeUrl ? 'youtube' : 'tiktok'));
             const platformIcons = {
                 twitch: '<i class="fa-brands fa-twitch" style="color:#9146ff;" title="Twitch"></i>',
                 youtube: '<i class="fa-brands fa-youtube" style="color:#ff0000;" title="YouTube"></i>',
@@ -760,23 +923,31 @@ function renderLivesScreen(isIllegal) {
                 outros: '<i class="fa-solid fa-play" style="color:var(--white-dim);" title="Live"></i>'
             };
 
+            const isOnline = !!m.isLive;
+            const badgeHtml = isOnline
+                ? `<div class="live-badge" style="position:absolute; top:12px; right:12px; background:#ef4444; color:white; font-size:0.68rem; font-weight:800; padding:2px 6px; border-radius:4px; text-transform:uppercase; letter-spacing:0.5px; display:flex; align-items:center; gap:4px; animation: live-blink 1.5s infinite;">
+                     <span style="width:6px; height:6px; background:white; border-radius:50%; display:inline-block;"></span>
+                     AO VIVO
+                   </div>`
+                : `<div class="live-badge offline" style="position:absolute; top:12px; right:12px; background:rgba(255,255,255,0.05); border: 1px solid var(--border-dark); color:var(--white-muted); font-size:0.68rem; font-weight:800; padding:2px 6px; border-radius:4px; text-transform:uppercase; letter-spacing:0.5px; display:flex; align-items:center; gap:4px;">
+                     <span style="width:6px; height:6px; background:#9ca3af; border-radius:50%; display:inline-block;"></span>
+                     OFFLINE
+                   </div>`;
+
             return `
-                <div class="lives-member-card ${m.id === activeLiveStreamMemberId ? 'active-highlight' : ''}" style="background:var(--black-card); border:1px solid ${m.id === activeLiveStreamMemberId ? (isIllegal ? '#f59e0b' : 'var(--red-primary)') : 'var(--border-dark)'}; border-radius:var(--radius-lg); padding:20px; display:flex; flex-direction:column; align-items:center; gap:12px; text-align:center; position:relative; transition:var(--transition); cursor:pointer;" onclick="window.activeLiveStreamMemberId = '${m.id}'; renderLivesScreen(${isIllegal});">
-                    <div class="live-badge" style="position:absolute; top:12px; right:12px; background:#ef4444; color:white; font-size:0.68rem; font-weight:800; padding:2px 6px; border-radius:4px; text-transform:uppercase; letter-spacing:0.5px; display:flex; align-items:center; gap:4px; animation: live-blink 1.5s infinite;">
-                        <span style="width:6px; height:6px; background:white; border-radius:50%; display:inline-block;"></span>
-                        AO VIVO
-                    </div>
-                    <div class="member-avatar-wrapper" style="position:relative; animation: live-pulse 1.5s infinite; border-radius:8px;">
+                <div class="lives-member-card ${isHighlighted ? 'active-highlight' : ''}" style="background:var(--black-card); border:1px solid ${isHighlighted ? (isIllegal ? '#f59e0b' : 'var(--red-primary)') : 'var(--border-dark)'}; border-radius:var(--radius-lg); padding:20px; display:flex; flex-direction:column; align-items:center; gap:12px; text-align:center; position:relative; transition:var(--transition); cursor:pointer;" onclick="window.activeLiveStreamMemberId = '${m.id}'; window.activeYoutubeVideoId = null; window.activeLivePlayerPlatform = null; renderLivesScreen(${isIllegal});">
+                    ${badgeHtml}
+                    <div class="member-avatar-wrapper" style="position:relative; ${isOnline ? 'animation: live-pulse 1.5s infinite;' : ''} border-radius:8px;">
                         <div style="${avatarStyle}">
                             ${avatarContent}
                         </div>
                     </div>
                     <div style="display:flex; flex-direction:column; gap:2px; width:100%;">
                         <h4 style="font-size:0.95rem; font-weight:700; color:var(--white-main); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; width:100%; display:flex; align-items:center; justify-content:center; gap:6px;">
-                            ${m.name} ${platformIcons[platform]}
+                            ${m.name} ${platformIcons[primaryPlatform] || platformIcons['outros']}
                         </h4>
                         <span style="font-size:0.75rem; color:var(--white-muted); display:flex; align-items:center; justify-content:center; gap:4px;">
-                            <i class="fa-solid fa-shield-halved"></i> ${isIllegal ? m.illegalRole : m.role}
+                            <i class="fa-solid fa-shield-halved"></i> ${isIllegal ? (m.illegalRole || 'Membro') : m.role}
                         </span>
                     </div>
                     <button class="action-btn primary-btn" style="width:100%; justify-content:center; background:${isIllegal ? 'rgba(245,158,11,0.08)' : 'var(--black-panel)'}; color:${isIllegal ? '#f59e0b' : 'var(--white-main)'}; font-weight:bold; border:1px solid ${isIllegal ? 'rgba(245,158,11,0.25)' : 'var(--border-dark)'}; padding:8px 12px; border-radius:var(--radius-sm); font-size:0.82rem; display:flex; align-items:center; gap:6px;">
@@ -862,6 +1033,7 @@ function renderLivesScreen(isIllegal) {
         <div class="lives-layout">
             ${platformFiltersHtml}
             ${playerHtml}
+            ${youtubeVideosGridHtml}
             <div>
                 <h3 style="font-family:'Rajdhani', sans-serif; font-size:1.2rem; font-weight:700; text-transform:uppercase; letter-spacing:1px; margin-bottom:15px; color:var(--white-main); display:flex; align-items:center; gap:8px;">
                     <i class="fa-solid fa-satellite-dish"></i> Transmissões Disponíveis (${filteredLives.length})
@@ -3684,6 +3856,10 @@ window.openMemberEditModal = function(memberId = '') {
             document.getElementById('editMemberJoinDate').value = member.joinDate;
             document.getElementById('editMemberAvatarUrl').value = member.avatarUrl || '';
             document.getElementById('editMemberLiveUrl').value = member.liveUrl || '';
+            document.getElementById('editMemberKickUrl').value = member.kickUrl || '';
+            document.getElementById('editMemberYoutubeUrl').value = member.youtubeUrl || '';
+            document.getElementById('editMemberTiktokUrl').value = member.tiktokUrl || '';
+            document.getElementById('editMemberIsLive').checked = !!member.isLive;
             
             // Set checkboxes for legal roles
             const userRoles = member.role ? member.role.split(',').map(r => r.trim().toLowerCase()) : [];
@@ -3717,6 +3893,10 @@ window.openMemberEditModal = function(memberId = '') {
         document.getElementById('editMemberJoinDate').value = new Date().toISOString().substring(0, 10);
         document.getElementById('editMemberAvatarUrl').value = '';
         document.getElementById('editMemberLiveUrl').value = '';
+        document.getElementById('editMemberKickUrl').value = '';
+        document.getElementById('editMemberYoutubeUrl').value = '';
+        document.getElementById('editMemberTiktokUrl').value = '';
+        document.getElementById('editMemberIsLive').checked = false;
         document.getElementById('editMemberIllegalRoleGroup').style.display = 'none';
         
         // Select Estagiario as default for new members
@@ -3752,6 +3932,10 @@ if (formMemberEdit) {
             illegalRole: flagIlegal ? selectedIllegalRoles : '',
             avatarUrl: document.getElementById('editMemberAvatarUrl').value.trim(),
             liveUrl: document.getElementById('editMemberLiveUrl').value.trim(),
+            kickUrl: document.getElementById('editMemberKickUrl').value.trim(),
+            youtubeUrl: document.getElementById('editMemberYoutubeUrl').value.trim(),
+            tiktokUrl: document.getElementById('editMemberTiktokUrl').value.trim(),
+            isLive: document.getElementById('editMemberIsLive').checked,
             password: existingMember ? existingMember.password : 'membro123'
         };
 

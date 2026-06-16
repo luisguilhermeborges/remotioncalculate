@@ -3042,3 +3042,18 @@ button[onclick*="openImpoundedCarModal"] {
     font-style: italic;
 }
 
+/* YouTube video card premium styling */
+.youtube-video-card:hover {
+    transform: translateY(-4px);
+    border-color: rgba(255, 0, 0, 0.3) !important;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.4);
+}
+
+.youtube-video-card:hover .youtube-video-thumb-wrapper img {
+    transform: scale(1.05);
+}
+
+.youtube-video-card:hover .play-overlay {
+    opacity: 1 !important;
+}
+

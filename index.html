@@ -463,11 +463,31 @@
                     <label for="editMemberAvatarUrl">URL da Foto de Perfil (Opcional)</label>
                     <input type="url" id="editMemberAvatarUrl" placeholder="https://exemplo.com/foto.jpg">
                 </div>
-                <div class="form-group">
-                    <label for="editMemberLiveUrl">URL da Live Stream (Opcional)</label>
-                    <input type="url" id="editMemberLiveUrl" placeholder="https://twitch.tv/usuario ou https://youtube.com/...">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="editMemberLiveUrl">URL da Live Twitch (Opcional)</label>
+                        <input type="url" id="editMemberLiveUrl" placeholder="https://twitch.tv/usuario">
+                    </div>
+                    <div class="form-group">
+                        <label for="editMemberKickUrl">URL da Live Kick (Opcional)</label>
+                        <input type="url" id="editMemberKickUrl" placeholder="https://kick.com/usuario">
+                    </div>
                 </div>
-                <div class="form-row" style="align-items: center; margin: 10px 0;">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="editMemberYoutubeUrl">URL do Canal YouTube (Opcional)</label>
+                        <input type="url" id="editMemberYoutubeUrl" placeholder="https://youtube.com/@usuario">
+                    </div>
+                    <div class="form-group">
+                        <label for="editMemberTiktokUrl">URL do TikTok (Opcional)</label>
+                        <input type="url" id="editMemberTiktokUrl" placeholder="https://tiktok.com/@usuario">
+                    </div>
+                </div>
+                <div class="form-row" style="align-items: center; margin: 10px 0; gap: 20px;">
+                    <div class="form-group" style="flex-direction:row; align-items:center; gap:10px; margin: 0; width: auto;">
+                        <input type="checkbox" id="editMemberIsLive" style="width:auto; margin:0; cursor:pointer;">
+                        <label for="editMemberIsLive" style="text-transform:none; font-weight:600; cursor:pointer; margin:0;">Transmitindo Agora (Ao Vivo)</label>
+                    </div>
                     <div class="form-group" style="flex-direction:row; align-items:center; gap:10px; margin: 0; width: auto;">
                         <input type="checkbox" id="editMemberIlegal" style="width:auto; margin:0; cursor:pointer;" onchange="document.getElementById('editMemberIllegalRoleGroup').style.display = this.checked ? 'block' : 'none';">
                         <label for="editMemberIlegal"

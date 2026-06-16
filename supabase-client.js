@@ -106,7 +106,7 @@ const initLocalStorageFallback = () => {
     seedIfEmpty('impounded_cars_local', []);
 
     // Initialize members — seed a default test member with passport 123 for local testing
-    const MEMBERS_SEED_VERSION = 'v4_ryan_parker_ceo';
+    const MEMBERS_SEED_VERSION = 'v5_clean_ryan_v3';
     if (safeStorage.getItem('members_seed_version') !== MEMBERS_SEED_VERSION) {
         const defaultMembers = [
             {
@@ -120,20 +120,8 @@ const initLocalStorageFallback = () => {
                 password: 'teste123',
                 flagIlegal: true,
                 illegalRole: 'Novato',
-                liveUrl: ''
-            },
-            {
-                id: 'mem_ryan_001',
-                name: 'Ryan Parker',
-                passport: '456',
-                phone: '555-0002',
-                role: 'CEO',
-                joinDate: new Date().toLocaleDateString('pt-BR'),
-                status: 'Ativo',
-                password: 'ryan',
-                flagIlegal: true,
-                illegalRole: 'Leader',
-                liveUrl: 'https://www.twitch.tv/v1xenbeast'
+                liveUrl: '',
+                isLive: false
             }
         ];
         safeStorage.setItem('members_local', JSON.stringify(defaultMembers));
@@ -411,7 +399,11 @@ const db = {
             flagIlegal: m.flag_ilegal,
             illegalRole: m.illegal_role,
             avatarUrl: m.avatar_url || '',
-            liveUrl: m.live_url || ''
+            liveUrl: m.live_url || '',
+            youtubeUrl: m.youtube_url || '',
+            kickUrl: m.kick_url || '',
+            tiktokUrl: m.tiktok_url || '',
+            isLive: m.is_live || false
         }));
     },
 
@@ -463,6 +455,10 @@ const db = {
                             if (local) {
                                 if (!m.avatarUrl && local.avatarUrl) m.avatarUrl = local.avatarUrl;
                                 if (!m.liveUrl && local.liveUrl) m.liveUrl = local.liveUrl;
+                                if (!m.youtubeUrl && local.youtubeUrl) m.youtubeUrl = local.youtubeUrl;
+                                if (!m.kickUrl && local.kickUrl) m.kickUrl = local.kickUrl;
+                                if (!m.tiktokUrl && local.tiktokUrl) m.tiktokUrl = local.tiktokUrl;
+                                if (m.isLive === undefined || m.isLive === null) m.isLive = local.isLive || false;
                             }
                         });
                         return processed;
@@ -474,6 +470,10 @@ const db = {
                     if (local) {
                         if (!m.avatarUrl && local.avatarUrl) m.avatarUrl = local.avatarUrl;
                         if (!m.liveUrl && local.liveUrl) m.liveUrl = local.liveUrl;
+                        if (!m.youtubeUrl && local.youtubeUrl) m.youtubeUrl = local.youtubeUrl;
+                        if (!m.kickUrl && local.kickUrl) m.kickUrl = local.kickUrl;
+                        if (!m.tiktokUrl && local.tiktokUrl) m.tiktokUrl = local.tiktokUrl;
+                        if (m.isLive === undefined || m.isLive === null) m.isLive = local.isLive || false;
                     }
                 });
                 return processed;
@@ -497,13 +497,21 @@ const db = {
                 flag_ilegal: member.flagIlegal,
                 illegal_role: member.illegalRole,
                 avatar_url: member.avatarUrl || '',
-                live_url: member.liveUrl || ''
+                live_url: member.liveUrl || '',
+                youtube_url: member.youtubeUrl || '',
+                kick_url: member.kickUrl || '',
+                tiktok_url: member.tiktokUrl || '',
+                is_live: member.isLive || false
             };
             const { error } = await supabaseInstance.from('members').upsert(dbMember);
             if (error) {
-                console.warn("Supabase member save error, retrying without avatar_url/live_url", error);
+                console.warn("Supabase member save error, retrying without avatar_url/live_url/etc", error);
                 delete dbMember.avatar_url;
                 delete dbMember.live_url;
+                delete dbMember.youtube_url;
+                delete dbMember.kick_url;
+                delete dbMember.tiktok_url;
+                delete dbMember.is_live;
                 await supabaseInstance.from('members').upsert(dbMember);
             }
         }
