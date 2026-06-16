@@ -3057,3 +3057,33 @@ button[onclick*="openImpoundedCarModal"] {
     opacity: 1 !important;
 }
 
+/* Autofill override to preserve dark theme input background */
+input:-webkit-autofill,
+input:-webkit-autofill:hover, 
+input:-webkit-autofill:focus, 
+input:-webkit-autofill:active {
+    -webkit-box-shadow: 0 0 0 30px var(--black-card) inset !important;
+    -webkit-text-fill-color: var(--white-main) !important;
+    transition: background-color 5000s ease-in-out 0s;
+}
+
+/* Auth modal styling and spacing improvements */
+#modalLogin .auth-tabs {
+    padding: 0 24px;
+    margin-bottom: 8px;
+}
+
+#formLogin, #formRegister {
+    padding: 16px 24px 24px 24px;
+    gap: 16px;
+}
+
+#formLogin .form-group, #formRegister .form-group {
+    gap: 6px;
+}
+
+#formLogin .modal-submit-btn, #formRegister .modal-submit-btn {
+    margin-top: 8px;
+}
+
+
