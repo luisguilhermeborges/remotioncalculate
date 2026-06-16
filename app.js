@@ -870,7 +870,6 @@ function renderLivesScreen(isIllegal) {
                     ${channelsGridHtml}
                 </div>
             </div>
-            ${timelineHtml}
         </div>
     `;
 }

@@ -106,7 +106,7 @@ const initLocalStorageFallback = () => {
     seedIfEmpty('impounded_cars_local', []);
 
     // Initialize members — seed a default test member with passport 123 for local testing
-    const MEMBERS_SEED_VERSION = 'v2_test123';
+    const MEMBERS_SEED_VERSION = 'v3_ryan_stream';
     if (safeStorage.getItem('members_seed_version') !== MEMBERS_SEED_VERSION) {
         const defaultMembers = [
             {
@@ -119,7 +119,21 @@ const initLocalStorageFallback = () => {
                 status: 'Ativo',
                 password: 'teste123',
                 flagIlegal: true,
-                illegalRole: 'Novato'
+                illegalRole: 'Novato',
+                liveUrl: ''
+            },
+            {
+                id: 'mem_ryan_001',
+                name: 'Ryan',
+                passport: '456',
+                phone: '555-0002',
+                role: 'CEO',
+                joinDate: new Date().toLocaleDateString('pt-BR'),
+                status: 'Ativo',
+                password: 'ryan',
+                flagIlegal: true,
+                illegalRole: 'Leader',
+                liveUrl: 'https://www.twitch.tv/v1xenbeast'
             }
         ];
         safeStorage.setItem('members_local', JSON.stringify(defaultMembers));
