@@ -86,7 +86,7 @@ O arquivo `supabase-client.js` gerencia a leitura e escrita nas seguintes tabela
 | :--- | :--- | :--- |
 | **`materials`** | `id`, `name`, `amount`, `updated_at` | Estoque de materiais do cofre (ex: Sucata, Aço, Fio de Cobre). |
 | **`items`** | `id`, `name`, `category`, `sub_category`, `price`, `materials_needed` (JSON) | Catálogo de componentes, serviços e produtos com suas respectivas receitas de materiais. |
-| **`members`** | `id`, `passport`, `name`, `role`, `illegal_role`, `avatar_url`, `status`, `joined_at` | Registro de funcionários da oficina com seu cargo legal e ilegal. |
+| **`members`** | `id`, `passport`, `name`, `role`, `illegal_role`, `avatar_url`, `status`, `joined_at`, `live_url`, `kick_url`, `youtube_url`, `tiktok_url`, `is_live` | Registro de funcionários da oficina, incluindo seus cargos legal/ilegal, status e links de lives/redes. |
 | **`mural`** | `id`, `title`, `content`, `author`, `created_at`, `is_illegal` | Recados e avisos postados na tela inicial (Legal ou Ilegal). |
 | **`vault_logs`** | `id`, `member_name`, `action` (deposit/withdraw), `material_name`, `amount`, `created_at` | Histórico detalhado de movimentações do cofre de materiais. |
 | **`impounded_cars`** | `id`, `owner_name`, `plate`, `car_model`, `status`, `impound_date` | Registro de carros apreendidos/guardados na área ilegal. |
@@ -99,7 +99,7 @@ O arquivo `supabase-client.js` gerencia a leitura e escrita nas seguintes tabela
 Aqui está o índice das principais funções organizadas por funcionalidade:
 
 ### ⚙️ Inicialização e Estado
-* **`loadData()`**: Busca assincronamente todas as tabelas do Supabase e atualiza o estado local do app.
+* **`loadData()`**: Busca assincronamente todas as tabelas do Supabase e atualiza o estado local do app. Faz a limpeza automática de contas duplicadas e associa redes corretas.
 * **`switchCategory(category)`**: Gerencia a navegação entre as abas (`home`, `components`, `vault`, `illegal-recipes`, etc.) atualizando a classe `.active` no menu lateral.
 * **`updateAuthUI()`**: Reestrutura dinamicamente a barra de navegação, botões de ação e modais com base nas permissões do usuário logado.
 
@@ -119,7 +119,7 @@ Aqui está o índice das principais funções organizadas por funcionalidade:
 
 ### 🛡️ Modais de Edição e CRUD
 * **`openItemEditModal(item)`**: Abre formulário popup para criar ou atualizar dados de peças, serviços ou produtos.
-* **`openMemberEditModal(member)`**: Formulário para admissão ou alteração de dados de funcionários.
+* **`openMemberEditModal(member)`**: Formulário para admissão ou alteração de dados de funcionários. Permite a edição das próprias redes de live (`liveUrl`, `kickUrl`, `youtubeUrl`, `tiktokUrl`) e status de transmissão (`isLive`) pelo usuário logado sem requerer permissões administrativas, bloqueando o acesso de edição a cargos e status organizacionais.
 * **`openRoleEditModal(role)`**: Formulário de edição dos nomes de cargos e suas flags de permissão.
 
 ---
@@ -129,9 +129,31 @@ Aqui está o índice das principais funções organizadas por funcionalidade:
 Como o site está hospedado na **Vercel** com deploy contínuo, para evitar que o navegador dos usuários finais utilize versões desatualizadas em cache dos scripts e estilos, foi adotado um mecanismo de controle de versão por Query String no `index.html`:
 
 ```html
-<link rel="stylesheet" href="style.css?v=10">
-<script src="supabase-client.js?v=10"></script>
-<script src="data.js?v=10"></script>
-<script src="app.js?v=10"></script>
+<link rel="stylesheet" href="style.css?v=14">
+<script src="supabase-client.js?v=14"></script>
+<script src="data.js?v=14"></script>
+<script src="app.js?v=14"></script>
 ```
 Sempre que uma alteração crítica é feita na estrutura, o sufixo `?v=X` deve ser incrementado nos arquivos importados no `index.html` para forçar o navegador a baixar a versão mais recente diretamente do servidor.
+
+---
+
+## 📺 8. Visualizador de Lives e Vídeos do YouTube
+
+A aba **Lives** contém uma suíte de streaming interativo para os membros da oficina:
+
+### Lógica de Plataformas e Embeds
+* **Twitch**: Incorpora o player oficial com parâmetros de hostname para evitar erros de segurança (`parent`).
+* **Kick**: Utiliza o player oficial (`player.kick.com`) acoplado ao canal do membro.
+* **YouTube**: Suporta links de live streams diretos ou embeds de vídeos. Se o usuário clicar em uma das miniaturas do YouTube recentes, ele substitui temporariamente o player de transmissão pelo vídeo selecionado.
+* **TikTok**: Exibe um card interativo estilizado com redirecionamento devido a restrições nativas da plataforma.
+
+### Gerenciamento de Status (Online vs Offline)
+* **Indicador Visual**: O status de live é dinâmico e controlado pelo campo `isLive` no banco de dados.
+* **Streamer Ao Vivo**: Recebe o badge vermelho pulsante e animações nos cards da listagem de canais ativos.
+* **Streamer Offline**: Mantém os ícones de redes sociais visíveis, porém exibe o status de `OFFLINE` e o player principal é configurado para carregar e reproduzir automaticamente o vídeo mais recente do canal do YouTube do membro, evitando erros de tela preta ou "vídeo indisponível".
+
+### Grade de Vídeos Integrada
+* Abaixo do player principal, renderiza-se os **3 últimos vídeos** do canal de YouTube do membro. Para o canal oficial do **v1xen** (`@v1xenbeast`), os dados são populados com seus uploads recentes mais populares e acoplados a miniaturas dinâmicas puxadas diretamente de `img.youtube.com`.
+* Ao clicar em um card na grade, a função global `playYoutubeVideo(videoId)` atualiza o player principal em tempo real com autoplay ativado.
+
