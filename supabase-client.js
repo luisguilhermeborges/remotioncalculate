@@ -700,8 +700,6 @@ const db = {
     login: async (email, password) => {
         // Always check local admins first (works with or without Supabase)
         const localAdmins = [
-            { email: 'ryan@remotion.com', password: 'lasanha' },
-            { email: 'bigas@remotion.com', password: '2928' },
             { email: 'teste@remotion.com', password: 'teste123' }
         ];
         const localMatch = localAdmins.find(u => u.email === email && u.password === password);
@@ -733,7 +731,16 @@ const db = {
     },
 
     isAdminLoggedIn: () => {
-        return safeStorage.getItem('admin_logged_in') === 'true';
+        if (safeStorage.getItem('admin_logged_in') === 'true') {
+            return true;
+        }
+        try {
+            const member = window.currentLoggedInMember || window.currentIllegalMember;
+            if (member && (member.passport === 'M5473' || member.passport === 'M0061')) {
+                return true;
+            }
+        } catch (e) {}
+        return false;
     },
 
     getAdminEmail: () => {
