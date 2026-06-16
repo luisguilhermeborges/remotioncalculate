@@ -3018,6 +3018,15 @@ if (btnLoginToggle) {
         if (db.isAdminLoggedIn() || currentLoggedInMember) {
             db.logout();
             currentLoggedInMember = null;
+            currentIllegalMember = null;
+            isIllegalUnlocked = false;
+            window.isEditModeActive = false;
+            document.body.classList.remove('edit-mode-active');
+            if (editCurrentBtn) {
+                editCurrentBtn.style.background = 'rgba(255,255,255,0.05)';
+                editCurrentBtn.style.borderColor = 'var(--border-dark)';
+                editCurrentBtn.style.color = 'var(--white-main)';
+            }
             updateAuthUI();
         } else {
             // Reset modal tabs to login

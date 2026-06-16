@@ -458,7 +458,7 @@ const db = {
                                 if (!m.youtubeUrl && local.youtubeUrl) m.youtubeUrl = local.youtubeUrl;
                                 if (!m.kickUrl && local.kickUrl) m.kickUrl = local.kickUrl;
                                 if (!m.tiktokUrl && local.tiktokUrl) m.tiktokUrl = local.tiktokUrl;
-                                if (m.isLive === undefined || m.isLive === null) m.isLive = local.isLive || false;
+                                if (!m.isLive && local.isLive) m.isLive = local.isLive;
                             }
                         });
                         return processed;
@@ -473,7 +473,7 @@ const db = {
                         if (!m.youtubeUrl && local.youtubeUrl) m.youtubeUrl = local.youtubeUrl;
                         if (!m.kickUrl && local.kickUrl) m.kickUrl = local.kickUrl;
                         if (!m.tiktokUrl && local.tiktokUrl) m.tiktokUrl = local.tiktokUrl;
-                        if (m.isLive === undefined || m.isLive === null) m.isLive = local.isLive || false;
+                        if (!m.isLive && local.isLive) m.isLive = local.isLive;
                     }
                 });
                 return processed;
@@ -526,7 +526,8 @@ const db = {
     memberLogin: async (passportOrEmail, password) => {
         // Load members list (queries Supabase if connected)
         const membersList = await db.getMembers();
-        const member = membersList.find(m => (m.passport === passportOrEmail || m.email === passportOrEmail) && 
+        const searchVal = String(passportOrEmail).trim();
+        const member = membersList.find(m => (String(m.passport).trim() === searchVal || (m.email && String(m.email).trim().toLowerCase() === searchVal.toLowerCase())) && 
             (m.password && password && m.password.toLowerCase() === password.toLowerCase()));
         if (!member) {
             return { success: false, error: 'Usuário ou senha incorretos.' };
