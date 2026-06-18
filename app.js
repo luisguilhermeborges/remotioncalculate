@@ -374,7 +374,7 @@ function renderStageButtons() {
 
     const stages = [1, 2, 3];
     container.innerHTML = stages.map(stage => {
-        const stageItems = activeComponents.filter(c => c.stage === stage);
+        const stageItems = activeComponents.filter(c => Number(c.stage) === Number(stage));
         const totalPrice = stageItems.reduce((acc, i) => acc + (i.sellPrice || 0), 0);
         return `
             <button class="stage-bundle-btn" onclick="addStageToCart(${stage})" id="stage-btn-${stage}">
@@ -389,7 +389,7 @@ function renderStageButtons() {
 }
 
 window.addStageToCart = function(stage) {
-    const stageItems = activeComponents.filter(c => c.stage === stage);
+    const stageItems = activeComponents.filter(c => Number(c.stage) === Number(stage));
     stageItems.forEach(item => {
         const existing = cart.find(c => c.id === item.id);
         if (existing) {
