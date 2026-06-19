@@ -1418,6 +1418,7 @@ function renderMembersScreen(searchTerm = '') {
                 <div class="member-card-badges" style="position: absolute; top: 12px; right: 12px; display: flex; flex-direction: column; align-items: flex-end; gap: 4px; z-index: 10;">
                     <span class="member-status-label status-${m.status.toLowerCase()}">${m.status}</span>
                     ${isIlegalTag}
+                </div>
                 <div class="member-card-header">
                     <div class="member-avatar" ${m.liveUrl ? `onclick="window.open('${m.liveUrl.startsWith('http') ? m.liveUrl : 'https://' + m.liveUrl}', '_blank'); event.stopPropagation();" title="Assistir Live"` : ''}>
                         ${m.avatarUrl ? `<img src="${m.avatarUrl}" alt="${m.name}" style="width:100%; height:100%; object-fit:cover; border-radius:inherit;" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"><span style="display:none; align-items:center; justify-content:center; width:100%; height:100%;">${initial}</span>` : initial}
