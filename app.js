@@ -416,11 +416,21 @@ function renderStageButtons() {
 window.addStageToCart = function(stage) {
     const stageItems = activeComponents.filter(c => Number(c.stage) === Number(stage));
     stageItems.forEach(item => {
-        const existing = cart.find(c => c.id === item.id);
+        let cartItemId = item.id;
+        let cartItemName = item.name;
+        let selectedLevel = null;
+        
+        if (item.id === 'suspension') {
+            selectedLevel = 5; // Default to Level 5 suspension in stage bundle
+            cartItemId = `suspension_lvl_5`;
+            cartItemName = `Suspensão Nível 5`;
+        }
+
+        const existing = cart.find(c => (c.cartItemId || c.id) === cartItemId);
         if (existing) {
             existing.qty += 1;
         } else {
-            cart.push({ ...item, qty: 1, type: 'components' });
+            cart.push({ ...item, cartItemId: cartItemId, name: cartItemName, selectedLevel: selectedLevel, qty: 1, type: 'components' });
         }
     });
     updateCart();
