@@ -102,6 +102,11 @@ const imageMap = {
     'sport_exhaust':            'icones/escapamento.png',
     'big_turbo':                'icones/turbina.png',
     'intercooler':              'icones/intercooler.png',
+    'suspension':               'icones/suspensao.png',
+    'suspension_1':             'icones/suspensao.png',
+    'suspension_2':             'icones/suspensao.png',
+    'suspension_3':             'icones/suspensao.png',
+    'suspension_4':             'icones/suspensao.png',
     'suspension_5':             'icones/suspensao.png',
     'racing_clutch':            'icones/embreagem.png',
     'intake_manifold':          'icones/coletor.png',
@@ -121,9 +126,14 @@ const imageMap = {
     'repair_engine':            'icones/reparomotor.png',
     'repair_lataria':           'icones/sucata.png',
     'repair_generic_parts':     'icones/coletor.png',
+    'pneu':                     'icones/borracha.png',
+    'guincho_ls':               'icones/sucata.png',
+    'guincho_sandy':            'icones/sucata.png',
+    'guincho_paleto':           'icones/sucata.png',
     // Products
     'lockpick':                 'icones/lockpick.png',
     'advanced_lockpick':        'icones/lockpickavançada.png',
+    'garrafa_nitro_pequena':    'icones/nitro.png',
     'garrafa_nitro_grande':     'icones/nitro.png',
     'racing_seatbelt':          'icones/cintodecorrida.png',
 };
@@ -135,7 +145,12 @@ const iconLabels = {
     'sport_exhaust':            'Escapamento',
     'big_turbo':                'Turbina / Turbo',
     'intercooler':              'Intercooler',
-    'suspension_5':             'Suspensão',
+    'suspension':               'Suspensão',
+    'suspension_1':             'Suspensão 1',
+    'suspension_2':             'Suspensão 2',
+    'suspension_3':             'Suspensão 3',
+    'suspension_4':             'Suspensão 4',
+    'suspension_5':             'Suspensão 5',
     'racing_clutch':            'Embreagem',
     'intake_manifold':          'Coletor de Admissão',
     'fuel_system':              'Combustível / Bomba',
@@ -154,6 +169,15 @@ const materialImageMap = {
     'refined_copper':   'icones/cobre.png',
     'refined_plastic':  'icones/plastico.png',
     'refined_scrap':    'icones/sucata.png',
+    'refined_glass':    'icones/sucata.png',
+    'electronic_waste': 'icones/sucata.png',
+    'electronic_component': 'icones/ecu.png',
+    'plastic':          'icones/plastico.png',
+    'scrap':            'icones/sucata.png',
+    'rubber':           'icones/borracha.png',
+    'glass':            'icones/sucata.png',
+    'copper':           'icones/cobre.png',
+    'aluminum':         'icones/aluminio.png',
 };
 
 const categoryMeta = {
@@ -179,6 +203,7 @@ const categoryMeta = {
 async function loadData() {
     updateStatusBadge('loading');
     try {
+        await db.checkAndSyncData();
         activeMaterials = await db.getMaterials();
         
         const dbItems = await db.getItems();
@@ -2624,6 +2649,22 @@ function renderItems(searchTerm = '') {
                 </div>`
             : '';
 
+        let extraCardHtml = '';
+        if (item.id === 'suspension') {
+            extraCardHtml = `
+                <div class="suspension-level-select-container" onclick="event.stopPropagation();" style="margin: 10px 0 6px 0; width: 100%;">
+                    <label style="font-size:0.72rem; color:var(--white-muted); margin-bottom:4px; display:block; text-align:left; font-weight:600;">Nível da Suspensão:</label>
+                    <select class="suspension-level-select" style="width:100%; padding:6px 10px; background:var(--black-panel); border:1px solid var(--border-dark); border-radius:var(--radius-sm); color:var(--white-main); font-size:0.8rem; outline:none; cursor:pointer;">
+                        <option value="5" selected>Nível 5 (Prioridade)</option>
+                        <option value="4">Nível 4</option>
+                        <option value="3">Nível 3</option>
+                        <option value="2">Nível 2</option>
+                        <option value="1">Nível 1</option>
+                    </select>
+                </div>
+            `;
+        }
+
         const card = document.createElement('div');
         card.className = 'quick-service-card';
         card.setAttribute('data-id', item.id);
@@ -2651,6 +2692,7 @@ function renderItems(searchTerm = '') {
                 </div>
             </div>
             ${materialsHtml}
+            ${extraCardHtml}
             <button class="quick-service-btn" id="qs-btn-${item.id}" style="pointer-events: none;">
                 <i class="fa-solid fa-plus"></i> Adicionar
             </button>
@@ -2672,11 +2714,29 @@ window.addToCart = function(itemId, category) {
     const item  = items.find(i => i.id === itemId);
 
     if (item) {
-        const existing = cart.find(c => c.id === item.id);
+        let cartItemId = item.id;
+        let cartItemName = item.name;
+        let selectedLevel = null;
+        
+        if (itemId === 'suspension') {
+            const cardEl = document.querySelector(`[data-id="suspension"]`);
+            let lvl = 5;
+            if (cardEl) {
+                const selectEl = cardEl.querySelector('.suspension-level-select');
+                if (selectEl) {
+                    lvl = parseInt(selectEl.value);
+                }
+            }
+            selectedLevel = lvl;
+            cartItemId = `suspension_lvl_${lvl}`;
+            cartItemName = `Suspensão Nível ${lvl}`;
+        }
+
+        const existing = cart.find(c => (c.cartItemId || c.id) === cartItemId);
         if (existing) {
             existing.qty += 1;
         } else {
-            cart.push({ ...item, qty: 1, type: actualCategory });
+            cart.push({ ...item, cartItemId: cartItemId, name: cartItemName, selectedLevel: selectedLevel, qty: 1, type: actualCategory });
         }
         updateCart();
 
@@ -2703,17 +2763,37 @@ window.addToCart = function(itemId, category) {
     }
 };
 
-window.removeFromCart = function(itemId) {
-    cart = cart.filter(item => item.id !== itemId);
+window.removeFromCart = function(cartItemId) {
+    cart = cart.filter(item => (item.cartItemId || item.id) !== cartItemId);
     updateCart();
 };
 
-window.updateQty = function(itemId, delta) {
-    const item = cart.find(i => i.id === itemId);
+window.updateQty = function(cartItemId, delta) {
+    const item = cart.find(i => (i.cartItemId || i.id) === cartItemId);
     if (item) {
         item.qty += delta;
-        if (item.qty <= 0) removeFromCart(itemId);
+        if (item.qty <= 0) removeFromCart(cartItemId);
         else updateCart();
+    }
+};
+
+window.changeCartSuspensionLevel = function(oldCartItemId, newLevel) {
+    const item = cart.find(c => c.cartItemId === oldCartItemId);
+    if (item) {
+        const newLevelInt = parseInt(newLevel);
+        const newCartItemId = `suspension_lvl_${newLevelInt}`;
+        
+        // Check if there is already a suspension of this level in the cart
+        const existing = cart.find(c => c.cartItemId === newCartItemId && c.cartItemId !== oldCartItemId);
+        if (existing) {
+            existing.qty += item.qty;
+            cart = cart.filter(c => c.cartItemId !== oldCartItemId);
+        } else {
+            item.cartItemId = newCartItemId;
+            item.selectedLevel = newLevelInt;
+            item.name = `Suspensão Nível ${newLevelInt}`;
+        }
+        updateCart();
     }
 };
 
@@ -2752,19 +2832,36 @@ function renderCartItems() {
         const imgHtml = imgSrc
             ? `<img src="${imgSrc}" alt="${item.name}" class="cart-item-img">`
             : `<i class="fa-solid fa-box" style="color:var(--red-primary)"></i>`;
+
+        let levelSelectorHtml = '';
+        if (item.id === 'suspension') {
+            levelSelectorHtml = `
+                <div onclick="event.stopPropagation();" style="margin: 4px 0;">
+                    <select onchange="window.changeCartSuspensionLevel('${item.cartItemId}', this.value)" style="padding:4px 8px; background:var(--black-panel); border:1px solid var(--border-dark); border-radius:var(--radius-sm); color:var(--white-main); font-size:0.75rem; outline:none; cursor:pointer;">
+                        <option value="5" ${item.selectedLevel === 5 ? 'selected' : ''}>Nível 5</option>
+                        <option value="4" ${item.selectedLevel === 4 ? 'selected' : ''}>Nível 4</option>
+                        <option value="3" ${item.selectedLevel === 3 ? 'selected' : ''}>Nível 3</option>
+                        <option value="2" ${item.selectedLevel === 2 ? 'selected' : ''}>Nível 2</option>
+                        <option value="1" ${item.selectedLevel === 1 ? 'selected' : ''}>Nível 1</option>
+                    </select>
+                </div>
+            `;
+        }
+
         return `
             <div class="cart-item">
                 <div class="cart-item-icon">${imgHtml}</div>
                 <div class="cart-item-info">
                     <span class="cart-item-name">${item.name}</span>
+                    ${levelSelectorHtml}
                     <span class="cart-item-price">${formatCurrency(price)} × ${item.qty}</span>
                 </div>
                 <div class="cart-item-controls">
-                    <button class="qty-btn" onclick="updateQty('${item.id}', -1)">
+                    <button class="qty-btn" onclick="updateQty('${item.cartItemId || item.id}', -1)">
                         <i class="fa-solid fa-minus"></i>
                     </button>
                     <span class="qty-display">${item.qty}</span>
-                    <button class="qty-btn" onclick="updateQty('${item.id}', 1)">
+                    <button class="qty-btn" onclick="updateQty('${item.cartItemId || item.id}', 1)">
                         <i class="fa-solid fa-plus"></i>
                     </button>
                 </div>

@@ -152,6 +152,75 @@ initLocalStorageFallback();
 const db = {
     isConnected: () => supabaseInstance !== null,
 
+    checkAndSyncData: async () => {
+        const FORCE_SEED_VERSION = 'v2026_june_prices_v2';
+        if (safeStorage.getItem('force_seed_version') !== FORCE_SEED_VERSION) {
+            console.log("Syncing local storage with updated default data...");
+            safeStorage.setItem('materials_local', JSON.stringify(typeof materials !== 'undefined' ? materials : []));
+            safeStorage.setItem('components_local', JSON.stringify(typeof components !== 'undefined' ? components : []));
+            safeStorage.setItem('services_local', JSON.stringify(typeof services !== 'undefined' ? services : []));
+            safeStorage.setItem('products_local', JSON.stringify(typeof products !== 'undefined' ? products : []));
+            
+            if (supabaseInstance) {
+                console.log("Syncing Supabase with updated default data...");
+                try {
+                    // Delete old suspension items from Supabase if they exist
+                    const oldSuspensionIds = ['suspension_1', 'suspension_2', 'suspension_3', 'suspension_4', 'suspension_5'];
+                    for (const oldId of oldSuspensionIds) {
+                        await supabaseInstance.from('items').delete().eq('id', oldId);
+                    }
+
+                    // Update all materials in Supabase
+                    for (const mat of materials) {
+                        await supabaseInstance.from('materials').upsert(mat);
+                    }
+                    // Update all components in Supabase
+                    for (const item of components) {
+                        await supabaseInstance.from('items').upsert({
+                            id: item.id,
+                            category: 'components',
+                            name: item.name,
+                            stage: item.stage || null,
+                            price: 0,
+                            sell_price: item.sellPrice || 0,
+                            ingredients: JSON.stringify(item.ingredients || []),
+                            image: item.image || null
+                        });
+                    }
+                    // Update all services in Supabase
+                    for (const item of services) {
+                        await supabaseInstance.from('items').upsert({
+                            id: item.id,
+                            category: 'services',
+                            name: item.name,
+                            stage: null,
+                            price: item.price || 0,
+                            sell_price: 0,
+                            ingredients: JSON.stringify(item.ingredients || []),
+                            image: item.image || null
+                        });
+                    }
+                    // Update all products in Supabase
+                    for (const item of products) {
+                        await supabaseInstance.from('items').upsert({
+                            id: item.id,
+                            category: 'products',
+                            name: item.name,
+                            stage: null,
+                            price: 0,
+                            sell_price: item.sellPrice || 0,
+                            ingredients: JSON.stringify(item.ingredients || []),
+                            image: item.image || null
+                        });
+                    }
+                } catch (e) {
+                    console.error("Failed to sync updated default data to Supabase:", e);
+                }
+            }
+            safeStorage.setItem('force_seed_version', FORCE_SEED_VERSION);
+        }
+    },
+
     // Set connection configuration
     setConnection: (url, anonKey) => {
         if (!url || !anonKey) {
