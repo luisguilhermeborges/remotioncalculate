@@ -3086,4 +3086,44 @@ input:-webkit-autofill:active {
     margin-top: 8px;
 }
 
+/* Premium Sidebar Login Button Styling */
+#btnLoginToggle {
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.03) 0%, rgba(255, 255, 255, 0.01) 100%);
+    border: 1px solid var(--border-dark);
+    border-radius: var(--radius-md);
+    color: var(--white-off);
+    padding: 14px 18px;
+    font-weight: 600;
+    transition: var(--transition);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    cursor: pointer;
+}
+
+#btnLoginToggle:hover {
+    background: linear-gradient(135deg, rgba(208, 2, 27, 0.1) 0%, rgba(208, 2, 27, 0.03) 100%);
+    border-color: var(--border-red);
+    color: var(--white-main);
+    box-shadow: 0 4px 15px rgba(208, 2, 27, 0.2);
+    transform: translateY(-1px);
+}
+
+#btnLoginToggle:active {
+    transform: translateY(1px);
+    box-shadow: 0 2px 6px rgba(208, 2, 27, 0.1);
+}
+
+/* Gold Theme adjustments for illegal area login button */
+.theme-gold #btnLoginToggle {
+    background: linear-gradient(135deg, rgba(245, 158, 11, 0.08) 0%, rgba(245, 158, 11, 0.02) 100%);
+    border-color: rgba(245, 158, 11, 0.15);
+    color: #f59e0b;
+}
+
+.theme-gold #btnLoginToggle:hover {
+    background: linear-gradient(135deg, rgba(245, 158, 11, 0.15) 0%, rgba(245, 158, 11, 0.04) 100%);
+    border-color: rgba(245, 158, 11, 0.35);
+    color: #ffffff;
+    box-shadow: 0 4px 15px rgba(245, 158, 11, 0.25);
+}
+
 

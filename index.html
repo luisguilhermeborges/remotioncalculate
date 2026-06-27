@@ -262,6 +262,20 @@
                 <button type="submit" class="modal-submit-btn"
                     style="background-color: var(--success); border-color: rgba(34,197,94,0.2); color: white;">Criar Conta</button>
             </form>
+
+            <!-- LOGGED IN VIEW -->
+            <div id="loggedInView" class="modal-body" style="display: none; align-items: center; flex-direction: column; gap: 16px; padding: 20px 0;">
+                <div style="width: 80px; height: 80px; border-radius: 50%; background: var(--red-subtle); border: 2px solid var(--red-primary); display: flex; align-items: center; justify-content: center; font-size: 2.2rem; color: var(--red-primary);">
+                    <i class="fa-solid fa-user"></i>
+                </div>
+                <div style="text-align: center;">
+                    <h3 id="loggedInUserName" style="font-weight: 800; color: var(--white-main); font-size: 1.2rem; font-family: 'Outfit', sans-serif;">Nome do Usuário</h3>
+                    <p id="loggedInUserRole" style="font-size: 0.85rem; color: var(--white-muted); margin-top: 4px; font-family: 'Outfit', sans-serif;">Cargo</p>
+                </div>
+                <button type="button" id="btnModalLogout" class="modal-submit-btn" style="background: var(--danger); border-color: var(--danger); color: white; width: 100%; margin-top: 10px;">
+                    <i class="fa-solid fa-right-from-bracket"></i> Fazer Logout
+                </button>
+            </div>
         </div>
     </div>
 

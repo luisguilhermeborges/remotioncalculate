@@ -3076,11 +3076,11 @@ function updateAuthUI() {
     
     if (btnLoginToggle) {
         if (isLoggedIn) {
-            const displayName = currentLoggedInMember ? currentLoggedInMember.name : db.getAdminEmail().split('@')[0];
-            btnLoginToggle.innerHTML = `<i class="fa-solid fa-right-from-bracket"></i> Logout (${displayName})`;
-            btnLoginToggle.style.color = 'var(--red-primary)';
+            const displayName = currentLoggedInMember ? currentLoggedInMember.name : (db.getAdminEmail() ? db.getAdminEmail().split('@')[0] : 'Admin');
+            btnLoginToggle.innerHTML = `<i class="fa-solid fa-user-check"></i> ${displayName}`;
+            btnLoginToggle.style.color = isIllegalUnlocked ? '#f59e0b' : '';
         } else {
-            btnLoginToggle.innerHTML = `<i class="fa-solid fa-lock"></i> Login Admin / Membro`;
+            btnLoginToggle.innerHTML = `<i class="fa-solid fa-lock"></i> Login / Painel`;
             btnLoginToggle.style.color = '';
         }
     }
@@ -3142,24 +3142,70 @@ document.querySelectorAll('.modal-close-btn').forEach(btn => {
 if (btnLoginToggle) {
     btnLoginToggle.addEventListener('click', () => {
         if (db.isAdminLoggedIn() || currentLoggedInMember) {
-            db.logout();
-            currentLoggedInMember = null;
-            currentIllegalMember = null;
-            isIllegalUnlocked = false;
-            window.isEditModeActive = false;
-            document.body.classList.remove('edit-mode-active');
-            if (editCurrentBtn) {
-                editCurrentBtn.style.background = 'rgba(255,255,255,0.05)';
-                editCurrentBtn.style.borderColor = 'var(--border-dark)';
-                editCurrentBtn.style.color = 'var(--white-main)';
+            // "nao precisa dar logoff" -> Show current profile / Connected status
+            const formLogin = document.getElementById('formLogin');
+            const formRegister = document.getElementById('formRegister');
+            const authTabs = document.querySelector('#modalLogin .auth-tabs');
+            const loggedInView = document.getElementById('loggedInView');
+            
+            if (formLogin) formLogin.style.display = 'none';
+            if (formRegister) formRegister.style.display = 'none';
+            if (authTabs) authTabs.style.display = 'none';
+            
+            if (loggedInView) {
+                loggedInView.style.display = 'flex';
+                const nameEl = document.getElementById('loggedInUserName');
+                const roleEl = document.getElementById('loggedInUserRole');
+                
+                const displayName = currentLoggedInMember ? currentLoggedInMember.name : (db.getAdminEmail() ? db.getAdminEmail().split('@')[0] : 'Administrador');
+                const displayRole = currentLoggedInMember ? currentLoggedInMember.role : 'Administrador';
+                
+                if (nameEl) nameEl.textContent = displayName;
+                if (roleEl) roleEl.textContent = displayRole;
             }
-            updateAuthUI();
+            
+            const titleEl = document.getElementById('loginModalTitle');
+            if (titleEl) titleEl.innerHTML = '<i class="fa-solid fa-user-circle"></i> Perfil Conectado';
+            
+            showModal(modalLogin);
         } else {
-            // Reset modal tabs to login
+            // Reset modal tabs to login and hide loggedInView
+            const formLogin = document.getElementById('formLogin');
+            const formRegister = document.getElementById('formRegister');
+            const authTabs = document.querySelector('#modalLogin .auth-tabs');
+            const loggedInView = document.getElementById('loggedInView');
+            
+            if (formLogin) formLogin.style.display = 'block';
+            if (formRegister) formRegister.style.display = 'none';
+            if (authTabs) authTabs.style.display = 'flex';
+            if (loggedInView) loggedInView.style.display = 'none';
+            
+            const titleEl = document.getElementById('loginModalTitle');
+            if (titleEl) titleEl.innerHTML = '<i class="fa-solid fa-lock"></i> Autenticação';
+            
             const tabLogin = document.getElementById('authTabLogin');
             if (tabLogin) tabLogin.click();
             showModal(modalLogin);
         }
+    });
+}
+
+const btnModalLogout = document.getElementById('btnModalLogout');
+if (btnModalLogout) {
+    btnModalLogout.addEventListener('click', () => {
+        db.logout();
+        currentLoggedInMember = null;
+        currentIllegalMember = null;
+        isIllegalUnlocked = false;
+        window.isEditModeActive = false;
+        document.body.classList.remove('edit-mode-active');
+        if (editCurrentBtn) {
+            editCurrentBtn.style.background = 'rgba(255,255,255,0.05)';
+            editCurrentBtn.style.borderColor = 'var(--border-dark)';
+            editCurrentBtn.style.color = 'var(--white-main)';
+        }
+        hideModal(modalLogin);
+        updateAuthUI();
     });
 }
 
