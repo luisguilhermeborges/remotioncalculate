@@ -147,6 +147,21 @@ window.selectMultiLiveChat = function(value) {
     }
 };
 
+window.getMultiLiveShareLink = function() {
+    const channels = window.selectedMultiLiveChannels.map(c => `${c.platform}:${c.channel}`).join(',');
+    const baseUrl = window.location.origin + window.location.pathname;
+    return `${baseUrl}?lives=${channels}`;
+};
+
+window.copyMultiLiveShareLink = function() {
+    const link = window.getMultiLiveShareLink();
+    navigator.clipboard.writeText(link).then(() => {
+        alert("Link de compartilhamento copiado com sucesso!");
+    }).catch(err => {
+        console.error("Failed to copy link:", err);
+    });
+};
+
 window.getMultiLiveHtml = function(isIllegal) {
     const count = window.selectedMultiLiveChannels.length;
     let gridStyle = '';
@@ -242,6 +257,9 @@ window.getMultiLiveHtml = function(isIllegal) {
                     <option value="twitch">Twitch</option>
                     <option value="kick">Kick</option>
                 </select>
+                <button onclick="window.copyMultiLiveShareLink()" class="action-btn" style="padding:8px 16px; font-size:0.85rem; font-weight:600; background:rgba(59,130,246,0.08); border-color:rgba(59,130,246,0.25); color:#3b82f6;">
+                    <i class="fa-solid fa-share-nodes"></i> Compartilhar
+                </button>
                 <button onclick="window.addCustomMultiLiveChannelFromInput(${isIllegal})" class="action-btn" style="padding:8px 16px; font-size:0.85rem; font-weight:600; background:rgba(34,197,94,0.08); border-color:rgba(34,197,94,0.25); color:var(--success);">
                     <i class="fa-solid fa-plus"></i> Adicionar
                 </button>
@@ -954,6 +972,7 @@ function renderLivesScreen(isIllegal) {
     // 1. Filter active live members by criteria and platform filter
     const activeLives = activeMembers.filter(m => 
         m.status === 'Ativo' && 
+        m.isStreaming && 
         (m.liveUrl || m.kickUrl || m.youtubeUrl || m.tiktokUrl) && 
         (isIllegal ? m.flagIlegal : (m.role && m.role !== 'Agregado'))
     );
@@ -1387,7 +1406,6 @@ function renderLivesScreen(isIllegal) {
                 </div>
             </div>
             ${playerHtml}
-            ${timelineHtml}
             ${ryanVideosHtml}
         </div>
     `;
@@ -3270,145 +3288,61 @@ function calculateTotals() {
 
 // ─── AUTHENTICATION FLOW UI UPDATES ───────────────────────────────────────
 function updateAuthUI() {
-    updateStatusBadge(db.isConnected() ? 'online' : 'local');
-    const isLoggedIn = db.isAdminLoggedIn() || currentLoggedInMember !== null;
-    const isAdminMode = db.isAdminLoggedIn() || (currentLoggedInMember && (currentLoggedInMember.role.toLowerCase() === 'gerente' || currentLoggedInMember.role.toLowerCase() === 'night boss' || currentLoggedInMember.role.toLowerCase() === 'owner'));
+    try {
+        updateStatusBadge(db.isConnected() ? 'online' : 'local');
+        const isLoggedIn = db.isAdminLoggedIn() || currentLoggedInMember !== null;
+        const isAdminMode = db.isAdminLoggedIn() || (currentLoggedInMember && currentLoggedInMember.role && (currentLoggedInMember.role.toLowerCase() === 'gerente' || currentLoggedInMember.role.toLowerCase() === 'night boss' || currentLoggedInMember.role.toLowerCase() === 'owner'));
 
-    if (btnManageMaterials) btnManageMaterials.style.display = isAdminMode ? 'flex' : 'none';
-    if (adminDivider) adminDivider.style.display = isAdminMode ? 'block' : 'none';
+        if (btnManageMaterials) btnManageMaterials.style.display = isAdminMode ? 'flex' : 'none';
+        if (adminDivider) adminDivider.style.display = isAdminMode ? 'block' : 'none';
 
-    // Toggle visibility of restricted pages (Membros, Hierarquia, Baú)
-    const btnMembers = document.getElementById('btn-members');
-    const btnHierarchy = document.getElementById('btn-hierarchy');
-    const btnVault = document.getElementById('btn-vault');
+        // Toggle visibility of restricted pages (Membros, Hierarquia, Baú)
+        const btnMembers = document.getElementById('btn-members');
+        const btnHierarchy = document.getElementById('btn-hierarchy');
+        const btnVault = document.getElementById('btn-vault');
 
-    const isIllegalOnly = currentLoggedInMember && 
-                          (!currentLoggedInMember.role || currentLoggedInMember.role === 'Agregado') && 
-                          currentLoggedInMember.flagIlegal;
+        const isIllegalOnly = currentLoggedInMember && 
+                              (!currentLoggedInMember.role || currentLoggedInMember.role === 'Agregado') && 
+                              currentLoggedInMember.flagIlegal;
 
-    const normalNav = document.getElementById('normalNav');
-    const illegalNav = document.getElementById('illegalNav');
+        const normalNav = document.getElementById('normalNav');
+        const illegalNav = document.getElementById('illegalNav');
 
-    if (isLoggedIn && isIllegalOnly) {
-        isIllegalUnlocked = true;
-        currentIllegalMember = currentLoggedInMember;
-        document.body.classList.add('theme-gold');
+        if (isLoggedIn && isIllegalOnly) {
+            isIllegalUnlocked = true;
+            currentIllegalMember = currentLoggedInMember;
+            document.body.classList.add('theme-gold');
 
-        const brandLogo = document.querySelector('.brand-logo');
-        const brandTagline = document.querySelector('.brand-tagline');
-        if (brandLogo) {
-            brandLogo.innerHTML = '<span class="brand-re" style="color:#f59e0b;">SECRET</span>';
-        }
-        if (brandTagline) {
-            brandTagline.textContent = 'Criminal Operations';
-        }
+            const brandLogo = document.querySelector('.brand-logo');
+            const brandTagline = document.querySelector('.brand-tagline');
+            if (brandLogo) {
+                brandLogo.innerHTML = '<span class="brand-re" style="color:#f59e0b;">SECRET</span>';
+            }
+            if (brandTagline) {
+                brandTagline.textContent = 'Criminal Operations';
+            }
 
-        if (normalNav) normalNav.style.display = 'none';
-        if (illegalNav) illegalNav.style.display = 'flex';
-
-        const illegalAllowed = ['illegal-recipes', 'illegal-actions', 'illegal-hierarchy', 'illegal-boosting', 'illegal-cars', 'illegal-mural', 'illegal-lives', 'members'];
-        if (!illegalAllowed.includes(currentCategory)) {
-            currentCategory = 'illegal-recipes';
-        }
-    } else if (isLoggedIn) {
-        if (isIllegalUnlocked) {
             if (normalNav) normalNav.style.display = 'none';
             if (illegalNav) illegalNav.style.display = 'flex';
-        } else {
-            if (normalNav) normalNav.style.display = 'flex';
-            if (illegalNav) illegalNav.style.display = 'none';
-        }
-    }
 
-    if (!isLoggedIn) {
-        if (btnMembers) btnMembers.style.display = 'none';
-        if (btnHierarchy) btnHierarchy.style.display = 'none';
-        if (btnVault) btnVault.style.display = 'none';
-
-        isIllegalUnlocked = false;
-        currentIllegalMember = null;
-        if (normalNav) normalNav.style.display = 'flex';
-        if (illegalNav) illegalNav.style.display = 'none';
-        document.body.classList.remove('theme-gold');
-        
-        // Restore Brand header
-        const brandLogo = document.querySelector('.brand-logo');
-        const brandTagline = document.querySelector('.brand-tagline');
-        if (brandLogo) {
-            brandLogo.innerHTML = '<span class="brand-re">RE:</span><span class="brand-colon">:</span><span class="brand-motion">Motion</span>';
-        }
-        if (brandTagline) {
-            brandTagline.textContent = 'Performance Shop';
+            const illegalAllowed = ['illegal-recipes', 'illegal-actions', 'illegal-hierarchy', 'illegal-boosting', 'illegal-cars', 'illegal-mural', 'illegal-lives', 'members'];
+            if (!illegalAllowed.includes(currentCategory)) {
+                currentCategory = 'illegal-recipes';
+            }
+        } else if (isLoggedIn) {
+            if (isIllegalUnlocked) {
+                if (normalNav) normalNav.style.display = 'none';
+                if (illegalNav) illegalNav.style.display = 'flex';
+            } else {
+                if (normalNav) normalNav.style.display = 'flex';
+                if (illegalNav) illegalNav.style.display = 'none';
+            }
         }
 
-        // Redirect if on restricted category
-        if (['members', 'hierarchy', 'vault', 'illegal-recipes', 'illegal-actions', 'illegal-hierarchy', 'illegal-boosting', 'illegal-cars', 'illegal-mural', 'illegal-lives'].includes(currentCategory)) {
-            switchCategory('home');
-        }
-    } else {
-        if (!isIllegalOnly) {
-            if (btnMembers) btnMembers.style.display = 'flex';
-            if (btnHierarchy) btnHierarchy.style.display = 'flex';
-            if (btnVault) btnVault.style.display = 'flex';
-        } else {
+        if (!isLoggedIn) {
             if (btnMembers) btnMembers.style.display = 'none';
             if (btnHierarchy) btnHierarchy.style.display = 'none';
             if (btnVault) btnVault.style.display = 'none';
-        }
-    }
-    
-    // Header add button depending on category permissions
-    if (addNewItemBtn) {
-        addNewItemBtn.style.display = 'none';
-
-        if (currentCategory === 'components' && hasPermission('edit_stages')) {
-            addNewItemBtn.style.display = 'flex';
-            addNewItemBtn.innerHTML = `<i class="fa-solid fa-plus"></i> Novo Stage`;
-        } else if (currentCategory === 'services' && hasPermission('edit_services')) {
-            addNewItemBtn.style.display = 'flex';
-            addNewItemBtn.innerHTML = `<i class="fa-solid fa-plus"></i> Novo Serviço`;
-        } else if (currentCategory === 'products' && hasPermission('edit_products')) {
-            addNewItemBtn.style.display = 'flex';
-            addNewItemBtn.innerHTML = `<i class="fa-solid fa-plus"></i> Novo Produto`;
-        } else if (currentCategory === 'illegal-recipes' && hasPermission('edit_products')) {
-            addNewItemBtn.style.display = 'flex';
-            addNewItemBtn.innerHTML = `<i class="fa-solid fa-plus"></i> Novo Item Ilegal`;
-        } else if (currentCategory === 'members' || currentCategory === 'illegal-hierarchy') {
-            if (currentSubCategory === 'roles' && hasPermission('manage_roles')) {
-                addNewItemBtn.style.display = 'flex';
-                addNewItemBtn.innerHTML = `<i class="fa-solid fa-plus"></i> Novo Cargo`;
-            } else if (currentSubCategory === 'list' && hasPermission('edit_members') && currentCategory === 'members') {
-                addNewItemBtn.style.display = 'flex';
-                addNewItemBtn.innerHTML = `<i class="fa-solid fa-plus"></i> Novo Membro`;
-            }
-        }
-    }
-
-    if (editCurrentBtn) {
-        editCurrentBtn.style.display = 'none';
-
-        if (currentCategory === 'components' && hasPermission('edit_stages')) {
-            editCurrentBtn.style.display = 'flex';
-            editCurrentBtn.innerHTML = `<i class="fa-solid fa-pen"></i> Alterar Stage`;
-        } else if (currentCategory === 'services' && hasPermission('edit_services')) {
-            editCurrentBtn.style.display = 'flex';
-            editCurrentBtn.innerHTML = `<i class="fa-solid fa-pen"></i> Alterar Serviço`;
-        } else if (currentCategory === 'products' && hasPermission('edit_products')) {
-            editCurrentBtn.style.display = 'flex';
-            editCurrentBtn.innerHTML = `<i class="fa-solid fa-pen"></i> Alterar Produto`;
-        } else if (currentCategory === 'illegal-recipes' && hasPermission('edit_products')) {
-            editCurrentBtn.style.display = 'flex';
-            editCurrentBtn.innerHTML = `<i class="fa-solid fa-pen"></i> Alterar Item Ilegal`;
-        } else if (currentCategory === 'members' || currentCategory === 'illegal-hierarchy') {
-            if (currentSubCategory === 'roles' && hasPermission('manage_roles')) {
-                editCurrentBtn.style.display = 'flex';
-                editCurrentBtn.innerHTML = `<i class="fa-solid fa-pen"></i> Alterar Cargo`;
-            } else if (currentSubCategory === 'list' && hasPermission('edit_members') && currentCategory === 'members') {
-                editCurrentBtn.style.display = 'flex';
-                editCurrentBtn.innerHTML = `<i class="fa-solid fa-pen"></i> Alterar Membro`;
-            }
-        } else if (currentCategory === 'illegal-actions') {
-            editCurrentBtn.style.display = 'flex';
             editCurrentBtn.innerHTML = `<i class="fa-solid fa-pen"></i> Alterar Ação`;
         } else if (currentCategory === 'illegal-boosting' && hasPermission('edit_services')) {
             editCurrentBtn.style.display = 'flex';
@@ -3501,12 +3435,18 @@ if (btnLoginToggle) {
                 loggedInView.style.display = 'flex';
                 const nameEl = document.getElementById('loggedInUserName');
                 const roleEl = document.getElementById('loggedInUserRole');
+                const toggleUserStreaming = document.getElementById('toggleUserStreaming');
                 
                 const displayName = currentLoggedInMember ? currentLoggedInMember.name : (db.getAdminEmail() ? db.getAdminEmail().split('@')[0] : 'Administrador');
                 const displayRole = currentLoggedInMember ? currentLoggedInMember.role : 'Administrador';
                 
                 if (nameEl) nameEl.textContent = displayName;
                 if (roleEl) roleEl.textContent = displayRole;
+                
+                if (toggleUserStreaming) {
+                    toggleUserStreaming.checked = currentLoggedInMember ? !!currentLoggedInMember.isStreaming : false;
+                    toggleUserStreaming.parentElement.style.display = currentLoggedInMember ? 'flex' : 'none';
+                }
             }
             
             const titleEl = document.getElementById('loginModalTitle');
@@ -3535,6 +3475,19 @@ if (btnLoginToggle) {
     });
 }
 
+const toggleUserStreaming = document.getElementById('toggleUserStreaming');
+if (toggleUserStreaming) {
+    toggleUserStreaming.addEventListener('change', async (e) => {
+        if (currentLoggedInMember) {
+            currentLoggedInMember.isStreaming = e.target.checked;
+            await db.saveMember(currentLoggedInMember);
+            (window.safeStorage || window.localStorage).setItem('logged_in_member', JSON.stringify(currentLoggedInMember));
+            await loadData();
+            updateAuthUI();
+        }
+    });
+}
+
 const btnModalLogout = document.getElementById('btnModalLogout');
 if (btnModalLogout) {
     btnModalLogout.addEventListener('click', () => {
@@ -3542,6 +3495,7 @@ if (btnModalLogout) {
         currentLoggedInMember = null;
         currentIllegalMember = null;
         isIllegalUnlocked = false;
+        (window.safeStorage || window.localStorage).removeItem('logged_in_member');
         window.isEditModeActive = false;
         document.body.classList.remove('edit-mode-active');
         if (editCurrentBtn) {
@@ -3577,6 +3531,7 @@ if (formLogin) {
         const memberResult = await db.memberLogin(inputVal, pass);
         if (memberResult.success) {
             currentLoggedInMember = memberResult.member;
+            (window.safeStorage || window.localStorage).setItem('logged_in_member', JSON.stringify(memberResult.member));
             hideModal(modalLogin);
             formLogin.reset();
             updateAuthUI();
@@ -3724,7 +3679,7 @@ if (formMaterialsManager) {
 // ─── MURAL ANNOUNCEMENTS SUBMISSIONS ──────────────────────────────────────
 window.openMuralModal = function() {
     formMuralPost.reset();
-    document.getElementById('muralAuthor').value = db.getAdminEmail().split('@')[0] || 'Admin';
+    document.getElementById('muralAuthor').value = (db.getAdminEmail() ? db.getAdminEmail().split('@')[0] : '') || 'Admin';
     showModal(modalMuralPost);
 };
 
@@ -4656,6 +4611,39 @@ window.handleActionPresetClick = function(id) {
 
 // ─── INIT ─────────────────────────────────────────────────────────────────
 (async () => {
+    // Restore member session
+    const savedMember = (window.safeStorage || window.localStorage).getItem('logged_in_member');
+    if (savedMember) {
+        try {
+            currentLoggedInMember = JSON.parse(savedMember);
+        } catch (e) {
+            console.error("Failed to restore member session:", e);
+        }
+    }
+    
     await loadData();
-    updateAuthUI();
+    
+    // Parse shared lives query param
+    const urlParams = new URLSearchParams(window.location.search);
+    const livesParam = urlParams.get('lives');
+    if (livesParam) {
+        window.isMultiLiveMode = true;
+        window.selectedMultiLiveChannels = livesParam.split(',').map(item => {
+            const [platform, channel] = item.split(':');
+            return {
+                type: 'custom',
+                id: 'custom_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5),
+                name: channel,
+                channel: channel.toLowerCase(),
+                platform: platform
+            };
+        });
+        if (window.selectedMultiLiveChannels.length > 0) {
+            window.activeMultiLiveChatChannel = window.selectedMultiLiveChannels[0].channel;
+            window.activeMultiLiveChatPlatform = window.selectedMultiLiveChannels[0].platform;
+        }
+        switchCategory('lives');
+    } else {
+        updateAuthUI();
+    }
 })();
