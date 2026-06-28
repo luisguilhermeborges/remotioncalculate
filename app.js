@@ -10,6 +10,265 @@ let cart = [];
 let currentLivePlatformFilter = 'all';
 window.activeLiveStreamMemberId = null;
 let livesSchedules = [];
+window.isMultiLiveMode = false;
+window.selectedMultiLiveChannels = []; // Array of { type: 'member'|'custom', id: string, name: string, channel: string, platform: 'twitch'|'kick'|'youtube' }
+window.activeMultiLiveChatChannel = '';
+window.activeMultiLiveChatPlatform = 'twitch';
+
+window.toggleMultiLiveMode = function(isIllegal) {
+    window.isMultiLiveMode = !window.isMultiLiveMode;
+    if (window.isMultiLiveMode && window.selectedMultiLiveChannels.length === 0) {
+        // Automatically add first active member
+        const activeLives = activeMembers.filter(m => 
+            m.status === 'Ativo' && 
+            (m.liveUrl || m.kickUrl || m.youtubeUrl || m.tiktokUrl) && 
+            (isIllegal ? m.flagIlegal : (m.role && m.role !== 'Agregado'))
+        );
+        if (activeLives.length > 0) {
+            const first = activeLives[0];
+            const platform = first.liveUrl ? 'twitch' : (first.kickUrl ? 'kick' : (first.youtubeUrl ? 'youtube' : 'tiktok'));
+            const pChannel = getChannelName(first.liveUrl || first.kickUrl || first.youtubeUrl || first.tiktokUrl, platform);
+            const channel = typeof pChannel === 'string' ? pChannel : (pChannel ? pChannel.id : '');
+            if (channel) {
+                window.selectedMultiLiveChannels.push({
+                    type: 'member',
+                    id: first.id,
+                    name: first.name,
+                    channel: channel,
+                    platform: platform
+                });
+                window.activeMultiLiveChatChannel = channel;
+                window.activeMultiLiveChatPlatform = platform;
+            }
+        }
+    }
+    renderLivesScreen(isIllegal);
+};
+
+window.toggleMultiLiveMember = function(memberId, platform, channel, isIllegal) {
+    const idx = window.selectedMultiLiveChannels.findIndex(c => c.type === 'member' && c.id === memberId);
+    if (idx >= 0) {
+        window.selectedMultiLiveChannels.splice(idx, 1);
+        if (window.activeMultiLiveChatChannel === channel) {
+            if (window.selectedMultiLiveChannels.length > 0) {
+                window.activeMultiLiveChatChannel = window.selectedMultiLiveChannels[0].channel;
+                window.activeMultiLiveChatPlatform = window.selectedMultiLiveChannels[0].platform;
+            } else {
+                window.activeMultiLiveChatChannel = '';
+            }
+        }
+    } else {
+        const member = activeMembers.find(m => m.id === memberId);
+        if (member) {
+            window.selectedMultiLiveChannels.push({
+                type: 'member',
+                id: memberId,
+                name: member.name,
+                channel: channel,
+                platform: platform
+            });
+            if (!window.activeMultiLiveChatChannel) {
+                window.activeMultiLiveChatChannel = channel;
+                window.activeMultiLiveChatPlatform = platform;
+            }
+        }
+    }
+    renderLivesScreen(isIllegal);
+};
+
+window.removeMultiLiveChannel = function(id, isIllegal) {
+    const idx = window.selectedMultiLiveChannels.findIndex(c => c.id === id);
+    if (idx >= 0) {
+        const removedChannel = window.selectedMultiLiveChannels[idx].channel;
+        window.selectedMultiLiveChannels.splice(idx, 1);
+        if (window.activeMultiLiveChatChannel === removedChannel) {
+            if (window.selectedMultiLiveChannels.length > 0) {
+                window.activeMultiLiveChatChannel = window.selectedMultiLiveChannels[0].channel;
+                window.activeMultiLiveChatPlatform = window.selectedMultiLiveChannels[0].platform;
+            } else {
+                window.activeMultiLiveChatChannel = '';
+            }
+        }
+    }
+    renderLivesScreen(isIllegal);
+};
+
+window.addCustomMultiLiveChannel = function(channelName, platform, isIllegal) {
+    if (!channelName) return;
+    const cleanName = channelName.trim();
+    const cleanLower = cleanName.toLowerCase();
+    if (window.selectedMultiLiveChannels.find(c => c.channel.toLowerCase() === cleanLower && c.platform === platform)) {
+        return;
+    }
+    const id = 'custom_' + Date.now();
+    window.selectedMultiLiveChannels.push({
+        type: 'custom',
+        id: id,
+        name: cleanName,
+        channel: cleanLower,
+        platform: platform
+    });
+    if (!window.activeMultiLiveChatChannel) {
+        window.activeMultiLiveChatChannel = cleanLower;
+        window.activeMultiLiveChatPlatform = platform;
+    }
+    renderLivesScreen(isIllegal);
+};
+
+window.addCustomMultiLiveChannelFromInput = function(isIllegal) {
+    const inputEl = document.getElementById('customChannelInput');
+    const platformEl = document.getElementById('customChannelPlatform');
+    if (inputEl && platformEl) {
+        const val = inputEl.value.trim();
+        if (val) {
+            window.addCustomMultiLiveChannel(val, platformEl.value, isIllegal);
+            inputEl.value = '';
+        }
+    }
+};
+
+window.selectMultiLiveChat = function(value) {
+    if (!value) {
+        window.activeMultiLiveChatChannel = '';
+        window.activeMultiLiveChatPlatform = 'twitch';
+        return;
+    }
+    const [platform, channel] = value.split(':');
+    window.activeMultiLiveChatChannel = channel;
+    window.activeMultiLiveChatPlatform = platform;
+    
+    const chatContainer = document.getElementById('multiLiveChatContainer');
+    if (chatContainer) {
+        if (platform === 'twitch') {
+            chatContainer.innerHTML = `<iframe src="https://twitch.tv/embed/${channel}/chat?parent=${window.location.hostname}&darkpopout" style="width:100%; height:100%; border:none;"></iframe>`;
+        } else if (platform === 'kick') {
+            chatContainer.innerHTML = `<iframe src="https://kick.com/popout/${channel}/chat" style="width:100%; height:100%; border:none;"></iframe>`;
+        }
+    }
+};
+
+window.getMultiLiveHtml = function(isIllegal) {
+    const count = window.selectedMultiLiveChannels.length;
+    let gridStyle = '';
+    let streamsHtml = '';
+    
+    if (count === 0) {
+        streamsHtml = `
+            <div style="grid-column: 1/-1; display:flex; flex-direction:column; align-items:center; justify-content:center; height:100%; min-height:450px; color:var(--white-dim);">
+                <i class="fa-solid fa-video-slash" style="font-size:3rem; margin-bottom:15px; opacity:0.3; color:${isIllegal ? '#f59e0b' : 'var(--red-primary)'}"></i>
+                <p style="font-weight:600; color:var(--white-main);">Nenhuma live ativa selecionada</p>
+                <p style="font-size:0.8rem; margin-top:5px; color:var(--white-muted);">Selecione os membros abaixo ou digite um canal customizado acima para começar.</p>
+            </div>
+        `;
+    } else {
+        let cols = 1;
+        let rows = 1;
+        if (count > 4) {
+            cols = 3;
+            rows = Math.ceil(count / 3);
+        } else if (count > 1) {
+            cols = 2;
+            rows = Math.ceil(count / 2);
+        }
+        gridStyle = `display: grid; grid-template-columns: repeat(${cols}, 1fr); grid-template-rows: repeat(${rows}, 1fr); gap: 10px; height: 100%; width: 100%; background: #080808; padding: 10px; border-radius: var(--radius-md);`;
+        
+        streamsHtml = window.selectedMultiLiveChannels.map(c => {
+            let src = '';
+            if (c.platform === 'twitch') {
+                src = `https://player.twitch.tv/?channel=${c.channel}&parent=${window.location.hostname}&muted=false`;
+            } else if (c.platform === 'kick') {
+                src = `https://player.kick.com/${c.channel}`;
+            } else if (c.platform === 'youtube') {
+                src = `https://www.youtube.com/embed/live_stream?channel=${c.channel}`;
+            }
+            
+            return `
+                <div class="multi-stream-item" style="position:relative; width:100%; height:100%; min-height: 250px; border-radius:var(--radius-sm); overflow:hidden; border: 1px solid var(--border-dark);">
+                    <div class="stream-title-overlay" style="position:absolute; top:8px; left:8px; z-index:10; background:rgba(0,0,0,0.75); border:1px solid rgba(255,255,255,0.1); padding:4px 10px; border-radius:20px; display:flex; align-items:center; gap:6px; font-size:0.75rem; font-weight:600; color:var(--white-main);">
+                        <span style="display:inline-block; width:8px; height:8px; border-radius:50%; background:red; animation:live-blink 1.5s infinite;"></span>
+                        <span>${c.name} (${c.platform.toUpperCase()})</span>
+                    </div>
+                    <iframe src="${src}" style="width:100%; height:100%; border:none;" allowfullscreen></iframe>
+                </div>
+            `;
+        }).join('');
+    }
+    
+    const selectOptions = window.selectedMultiLiveChannels.map(c => {
+        const isSelected = window.activeMultiLiveChatChannel === c.channel && window.activeMultiLiveChatPlatform === c.platform;
+        return `<option value="${c.platform}:${c.channel}" ${isSelected ? 'selected' : ''}>${c.name} (${c.platform.toUpperCase()})</option>`;
+    }).join('');
+    
+    let chatIframeHtml = '';
+    if (window.activeMultiLiveChatChannel) {
+        if (window.activeMultiLiveChatPlatform === 'twitch') {
+            chatIframeHtml = `<iframe src="https://twitch.tv/embed/${window.activeMultiLiveChatChannel}/chat?parent=${window.location.hostname}&darkpopout" style="width:100%; height:100%; border:none;"></iframe>`;
+        } else if (window.activeMultiLiveChatPlatform === 'kick') {
+            chatIframeHtml = `<iframe src="https://kick.com/popout/${window.activeMultiLiveChatChannel}/chat" style="width:100%; height:100%; border:none;"></iframe>`;
+        }
+    } else {
+        chatIframeHtml = `
+            <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100%; padding:20px; text-align:center; color:var(--white-dim);">
+                <i class="fa-solid fa-comments" style="font-size:2rem; margin-bottom:10px; opacity:0.3; color:${isIllegal ? '#f59e0b' : 'var(--red-primary)'}"></i>
+                <p style="font-size:0.85rem; color:var(--white-muted);">Selecione uma stream para carregar o chat</p>
+            </div>
+        `;
+    }
+    
+    const badgesHtml = window.selectedMultiLiveChannels.map(c => {
+        const platformIcon = c.platform === 'twitch' ? '<i class="fa-brands fa-twitch" style="color:#9146ff"></i>' : '<i class="fa-solid fa-gamepad" style="color:#53fc18"></i>';
+        return `
+            <span class="multi-channel-badge" style="display:inline-flex; align-items:center; gap:6px; background:var(--black-panel); border:1px solid var(--border-dark); padding:4px 10px; border-radius:20px; font-size:0.78rem; color:var(--white-off);">
+                ${platformIcon}
+                <span>${c.name}</span>
+                <button onclick="window.removeMultiLiveChannel('${c.id}', ${isIllegal})" style="background:none; border:none; color:var(--red-primary); cursor:pointer; font-weight:bold; margin-left:4px; font-size:0.85rem; display:flex; align-items:center;"><i class="fa-solid fa-xmark"></i></button>
+            </span>
+        `;
+    }).join('');
+
+    return `
+        <div class="multi-live-controls" style="background: var(--black-card); border: 1px solid var(--border-dark); border-radius: var(--radius-lg); padding: 15px; margin-bottom: 20px; display: flex; flex-wrap: wrap; gap: 15px; align-items: center; justify-content: space-between;">
+            <div style="display:flex; flex-direction:column; gap:6px; max-width: 50%;">
+                <span style="font-weight:700; font-size:0.9rem; color:var(--white-main); display:flex; align-items:center; gap:6px;">
+                    <i class="fa-solid fa-network-wired" style="color:${isIllegal ? '#f59e0b' : 'var(--red-primary)'}"></i> Canais Ativos na Multi-Live
+                </span>
+                <div style="display:flex; flex-wrap:wrap; gap:6px; margin-top:4px;">
+                    ${badgesHtml || '<span style="font-size:0.8rem; color:var(--white-dim); font-style:italic;">Nenhum canal ativo</span>'}
+                </div>
+            </div>
+            <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                <input type="text" id="customChannelInput" placeholder="Nome do canal Twitch/Kick..." style="padding:8px 12px; font-size:0.85rem; border-radius:var(--radius-sm); background:var(--black-panel); border:1px solid var(--border-dark); color:var(--white-main); outline:none; width: 180px;">
+                <select id="customChannelPlatform" style="padding:8px; font-size:0.85rem; border-radius:var(--radius-sm); background:var(--black-panel); border:1px solid var(--border-dark); color:var(--white-main); outline:none; cursor:pointer;">
+                    <option value="twitch">Twitch</option>
+                    <option value="kick">Kick</option>
+                </select>
+                <button onclick="window.addCustomMultiLiveChannelFromInput(${isIllegal})" class="action-btn" style="padding:8px 16px; font-size:0.85rem; font-weight:600; background:rgba(34,197,94,0.08); border-color:rgba(34,197,94,0.25); color:var(--success);">
+                    <i class="fa-solid fa-plus"></i> Adicionar
+                </button>
+            </div>
+        </div>
+
+        <div class="multi-live-container" style="display: flex; gap: 20px; height: 600px; width: 100%; margin-bottom: 30px; flex-wrap: wrap;">
+            <div style="flex: 1; min-width: 320px; height: 100%; min-height: 400px; background:#000; border-radius:var(--radius-lg); overflow:hidden; border: 1px solid var(--border-dark);">
+                <div style="${gridStyle || 'height:100%; width:100%; display:flex;'}">
+                    ${streamsHtml}
+                </div>
+            </div>
+            <div class="multi-live-chat-sidebar" style="width: 320px; background: var(--black-card); border: 1px solid var(--border-dark); border-radius: var(--radius-lg); display: flex; flex-direction: column; overflow: hidden; flex-shrink: 0; height: 100%;">
+                <div class="chat-sidebar-header" style="padding: 12px; border-bottom: 1px solid var(--border-dark); display: flex; flex-direction: column; gap: 8px;">
+                    <div style="font-size:0.75rem; font-weight:700; color:var(--white-muted); text-transform:uppercase; letter-spacing:0.5px;">Chat Selecionado</div>
+                    <select onchange="window.selectMultiLiveChat(this.value)" style="width:100%; padding:8px; background:var(--black-panel); border:1px solid var(--border-dark); border-radius:var(--radius-sm); color:var(--white-main); font-size:0.8rem; outline:none; cursor:pointer;">
+                        <option value="">Selecione um Chat...</option>
+                        ${selectOptions}
+                    </select>
+                </div>
+                <div id="multiLiveChatContainer" style="flex: 1; background: #0e0e10;">
+                    ${chatIframeHtml}
+                </div>
+            </div>
+        </div>
+    `;
+};
 
 // Active collections fetched from DB/LocalStorage
 let activeComponents = [];
@@ -724,7 +983,7 @@ function renderLivesScreen(isIllegal) {
 
     // 2. Build Platform Filters Bar
     const platformFiltersHtml = `
-        <div class="platform-filters" style="margin-bottom: 24px;">
+        <div class="platform-filters" style="margin-bottom: 24px; display: flex; flex-wrap: wrap; gap: 8px; width: 100%;">
             <button class="platform-filter-btn ${currentLivePlatformFilter === 'all' ? 'active' : ''}" data-platform="all" onclick="setLivePlatformFilter('all', ${isIllegal})">
                 <i class="fa-solid fa-play"></i> Todas
             </button>
@@ -740,6 +999,9 @@ function renderLivesScreen(isIllegal) {
             <button class="platform-filter-btn ${currentLivePlatformFilter === 'tiktok' ? 'active' : ''}" data-platform="tiktok" onclick="setLivePlatformFilter('tiktok', ${isIllegal})">
                 <i class="fa-brands fa-tiktok"></i> TikTok
             </button>
+            <button class="platform-filter-btn ${window.isMultiLiveMode ? 'active' : ''}" style="margin-left: auto; border-color: ${window.isMultiLiveMode ? (isIllegal ? '#f59e0b' : 'var(--red-primary)') : 'var(--border-dark)'}; color: ${window.isMultiLiveMode ? 'var(--white-main)' : 'var(--white-muted)'}; background: ${window.isMultiLiveMode ? (isIllegal ? 'rgba(245, 158, 11, 0.08)' : 'var(--red-subtle)') : 'transparent'}; font-weight: bold; display: flex; align-items: center; gap: 8px;" onclick="window.toggleMultiLiveMode(${isIllegal})">
+                <i class="fa-solid fa-cubes"></i> Modo Multi-Live: ${window.isMultiLiveMode ? 'ON' : 'OFF'}
+            </button>
         </div>
     `;
 
@@ -747,7 +1009,9 @@ function renderLivesScreen(isIllegal) {
     let playerHtml = '';
     let youtubeVideosGridHtml = '';
 
-    if (highlightedMember) {
+    if (window.isMultiLiveMode) {
+        playerHtml = window.getMultiLiveHtml(isIllegal);
+    } else if (highlightedMember) {
         // Find all available platforms for the highlighted member
         const availablePlatforms = [];
         if (highlightedMember.liveUrl) availablePlatforms.push('twitch');
@@ -943,7 +1207,11 @@ function renderLivesScreen(isIllegal) {
     } else {
         channelsGridHtml = filteredLives.map(m => {
             const initial = m.name ? m.name.charAt(0).toUpperCase() : '?';
-             const isHighlighted = m.id === window.activeLiveStreamMemberId;
+            
+            // Check if is highlighted or is selected in multi-live mode
+            const isSelected = window.selectedMultiLiveChannels.some(c => c.type === 'member' && c.id === m.id);
+            const isHighlighted = window.isMultiLiveMode ? isSelected : (m.id === window.activeLiveStreamMemberId);
+            
             const avatarStyle = `width:80px; height:80px; border-radius:8px; border:2px solid ${isHighlighted ? (isIllegal ? '#f59e0b' : 'var(--red-primary)') : 'var(--border-dark)'}; position:relative; overflow:hidden; transition: var(--transition);`;
             
             let avatarContent = `<span style="font-size:1.8rem; font-weight:bold; color:var(--white-main); width:100%; height:100%; display:flex; align-items:center; justify-content:center; background:var(--black-panel);">${initial}</span>`;
@@ -961,10 +1229,26 @@ function renderLivesScreen(isIllegal) {
                 outros: '<i class="fa-solid fa-play" style="color:var(--white-dim);" title="Live"></i>'
             };
 
-            const badgeHtml = '';
+            // Custom onclick based on mode
+            const pUrl = m.liveUrl || m.kickUrl || m.youtubeUrl || m.tiktokUrl;
+            const pType = m.liveUrl ? 'twitch' : (m.kickUrl ? 'kick' : (m.youtubeUrl ? 'youtube' : 'tiktok'));
+            const pChannel = getChannelName(pUrl, pType);
+            const cleanChannelName = typeof pChannel === 'string' ? pChannel : (pChannel ? (pChannel.id || '') : '');
+            
+            const onClickAttr = window.isMultiLiveMode 
+                ? `window.toggleMultiLiveMember('${m.id}', '${pType}', '${cleanChannelName}', ${isIllegal})`
+                : `window.activeLiveStreamMemberId = '${m.id}'; window.activeYoutubeVideoId = null; window.activeLivePlayerPlatform = null; renderLivesScreen(${isIllegal});`;
+
+            const badgeHtml = isSelected && window.isMultiLiveMode 
+                ? `<div style="position:absolute; top:8px; right:8px; background:${isIllegal ? '#f59e0b' : 'var(--red-primary)'}; color:${isIllegal ? 'black' : 'white'}; border-radius:50%; width:20px; height:20px; display:flex; align-items:center; justify-content:center; font-size:0.75rem; font-weight:bold; z-index:5;"><i class="fa-solid fa-check"></i></div>` 
+                : '';
+
+            const buttonText = window.isMultiLiveMode
+                ? (isSelected ? '<i class="fa-solid fa-minus"></i> Remover da Multi' : '<i class="fa-solid fa-plus"></i> Adicionar à Multi')
+                : '<i class="fa-solid fa-desktop"></i> Ver no Painel';
 
             return `
-                <div class="lives-member-card ${isHighlighted ? 'active-highlight' : ''}" style="background:var(--black-card); border:1px solid ${isHighlighted ? (isIllegal ? '#f59e0b' : 'var(--red-primary)') : 'var(--border-dark)'}; border-radius:var(--radius-lg); padding:20px; display:flex; flex-direction:column; align-items:center; gap:12px; text-align:center; position:relative; transition:var(--transition); cursor:pointer;" onclick="window.activeLiveStreamMemberId = '${m.id}'; window.activeYoutubeVideoId = null; window.activeLivePlayerPlatform = null; renderLivesScreen(${isIllegal});">
+                <div class="lives-member-card ${isHighlighted ? 'active-highlight' : ''}" style="background:var(--black-card); border:1px solid ${isHighlighted ? (isIllegal ? '#f59e0b' : 'var(--red-primary)') : 'var(--border-dark)'}; border-radius:var(--radius-lg); padding:20px; display:flex; flex-direction:column; align-items:center; gap:12px; text-align:center; position:relative; transition:var(--transition); cursor:pointer;" onclick="${onClickAttr}">
                     ${badgeHtml}
                     <div class="member-avatar-wrapper" style="position:relative; border-radius:8px;">
                         <div style="${avatarStyle}">
@@ -979,8 +1263,8 @@ function renderLivesScreen(isIllegal) {
                             <i class="fa-solid fa-shield-halved"></i> ${isIllegal ? (m.illegalRole || 'Membro') : m.role}
                         </span>
                     </div>
-                    <button class="action-btn primary-btn" style="width:100%; justify-content:center; background:${isIllegal ? 'rgba(245,158,11,0.08)' : 'var(--black-panel)'}; color:${isIllegal ? '#f59e0b' : 'var(--white-main)'}; font-weight:bold; border:1px solid ${isIllegal ? 'rgba(245,158,11,0.25)' : 'var(--border-dark)'}; padding:8px 12px; border-radius:var(--radius-sm); font-size:0.82rem; display:flex; align-items:center; gap:6px;">
-                        <i class="fa-solid fa-desktop"></i> Ver no Painel
+                    <button class="action-btn primary-btn" style="width:100%; justify-content:center; background:${isSelected && window.isMultiLiveMode ? 'rgba(34,197,94,0.15)' : (isIllegal ? 'rgba(245,158,11,0.08)' : 'var(--black-panel)')}; color:${isSelected && window.isMultiLiveMode ? 'var(--success)' : (isIllegal ? '#f59e0b' : 'var(--white-main)')}; font-weight:bold; border:1px solid ${isSelected && window.isMultiLiveMode ? 'var(--success)' : (isIllegal ? 'rgba(245,158,11,0.25)' : 'var(--border-dark)')}; padding:8px 12px; border-radius:var(--radius-sm); font-size:0.82rem; display:flex; align-items:center; gap:6px;">
+                        ${buttonText}
                     </button>
                 </div>`;
         }).join('');
