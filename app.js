@@ -501,7 +501,6 @@ async function loadData() {
             m.passport !== '456' &&
             m.id !== 'mem_ryan_001' &&
             !m.id.startsWith('mem_seed_') &&
-            !m.name.toLowerCase().includes('guilherme moody') && 
             !m.name.toLowerCase().includes('teste ilegal')
         );
         if (localMems.length !== originalLength) {
@@ -572,8 +571,8 @@ async function loadData() {
     // Perform database cleanups requested by the user
     let needsReload = false;
     
-    // 1. Delete Guilherme Moody (passport M5437)
-    const moody = activeMembers.find(m => m.passport === 'M5437' || m.passport === 'm5437' || m.name.toLowerCase().includes('guilherme moody'));
+    // 1. Delete Guilherme Moody (passport M5437) ONLY
+    const moody = activeMembers.find(m => m.passport === 'M5437' || m.passport === 'm5437');
     if (moody) {
         await db.deleteMember(moody.id);
         needsReload = true;
@@ -601,6 +600,48 @@ async function loadData() {
         matteo.liveUrl = 'https://www.twitch.tv/frozstx';
         await db.saveMember(matteo);
         needsReload = true;
+    }
+    
+    // 5. Ensure Guilherme Moody (M5473) is active with role "Mecanico Pleno, Dev" and shows in lives
+    const moodyReal = activeMembers.find(m => m.passport === 'M5473');
+    if (!moodyReal) {
+        const newMoody = {
+            id: 'mem_moody_real',
+            name: 'Guilherme Moody',
+            passport: 'M5473',
+            phone: '555-9876',
+            role: 'Mecanico Pleno, Dev',
+            joinDate: new Date().toISOString().substring(0, 10),
+            status: 'Ativo',
+            flagIlegal: false,
+            illegalRole: '',
+            avatarUrl: '',
+            liveUrl: 'https://www.twitch.tv/tvitt_',
+            kickUrl: '',
+            youtubeUrl: '',
+            tiktokUrl: '',
+            password: 'membro123'
+        };
+        await db.saveMember(newMoody);
+        needsReload = true;
+    } else {
+        let changed = false;
+        if (!moodyReal.role || !moodyReal.role.toLowerCase().includes('mecanico pleno')) {
+            moodyReal.role = 'Mecanico Pleno, Dev';
+            changed = true;
+        }
+        if (moodyReal.status !== 'Ativo') {
+            moodyReal.status = 'Ativo';
+            changed = true;
+        }
+        if (!moodyReal.liveUrl) {
+            moodyReal.liveUrl = 'https://www.twitch.tv/tvitt_';
+            changed = true;
+        }
+        if (changed) {
+            await db.saveMember(moodyReal);
+            needsReload = true;
+        }
     }
     
     if (needsReload) {
