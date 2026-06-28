@@ -430,7 +430,13 @@ window.addStageToCart = function(stage) {
         if (existing) {
             existing.qty += 1;
         } else {
-            cart.push({ ...item, cartItemId: cartItemId, name: cartItemName, selectedLevel: selectedLevel, qty: 1, type: 'components' });
+            const cartItem = { ...item, cartItemId: cartItemId, name: cartItemName, selectedLevel: selectedLevel, qty: 1, type: 'components' };
+            if (item.id === 'suspension') {
+                const details = window.getSuspensionDetailsForLevel(5);
+                cartItem.sellPrice = details.price;
+                cartItem.ingredients = details.ingredients;
+            }
+            cart.push(cartItem);
         }
     });
     updateCart();
@@ -2505,6 +2511,50 @@ function renderIllegalRecipes() {
     `;
 }
 
+// Helper to scale suspension prices and ingredients based on chosen level
+window.getSuspensionDetailsForLevel = function(level) {
+    const lvl = parseInt(level);
+    const fraction = lvl / 5;
+    return {
+        price: 11280 * fraction,
+        ingredients: [
+            { id: "refined_plastic", quantity: Math.round(200 * fraction) },
+            { id: "refined_rubber", quantity: Math.round(200 * fraction) },
+            { id: "refined_scrap", quantity: Math.round(200 * fraction) },
+            { id: "refined_copper", quantity: Math.round(200 * fraction) }
+        ]
+    };
+};
+
+window.updateSuspensionCardUI = function(selectEl) {
+    const cardEl = selectEl.closest('.quick-service-card');
+    if (!cardEl) return;
+    
+    const lvl = parseInt(selectEl.value);
+    const details = window.getSuspensionDetailsForLevel(lvl);
+    
+    // Update displayed price
+    const priceEl = cardEl.querySelector('.quick-service-price');
+    if (priceEl) {
+        priceEl.textContent = formatCurrency(details.price);
+    }
+    
+    // Update displayed materials
+    const materialsListEl = cardEl.querySelector('.quick-service-materials');
+    if (materialsListEl) {
+        const matItems = materialsListEl.querySelectorAll('.quick-service-material-item');
+        details.ingredients.forEach((ing, index) => {
+            const matItem = matItems[index];
+            if (matItem) {
+                const qtySpan = matItem.querySelector('span:last-child');
+                if (qtySpan) {
+                    qtySpan.textContent = `${ing.quantity}x`;
+                }
+            }
+        });
+    }
+};
+
 // ─── RENDER STANDARD LIST OF ITEMS ────────────────────────────────────────
 function renderItems(searchTerm = '') {
     const stageButtonsContainer = document.getElementById('stageButtonsContainer');
@@ -2664,7 +2714,7 @@ function renderItems(searchTerm = '') {
             extraCardHtml = `
                 <div class="suspension-level-select-container" onclick="event.stopPropagation();" style="margin: 10px 0 6px 0; width: 100%;">
                     <label style="font-size:0.72rem; color:var(--white-muted); margin-bottom:4px; display:block; text-align:left; font-weight:600;">Nível da Suspensão:</label>
-                    <select class="suspension-level-select" style="width:100%; padding:6px 10px; background:var(--black-panel); border:1px solid var(--border-dark); border-radius:var(--radius-sm); color:var(--white-main); font-size:0.8rem; outline:none; cursor:pointer;">
+                    <select class="suspension-level-select" onchange="window.updateSuspensionCardUI(this)" style="width:100%; padding:6px 10px; background:var(--black-panel); border:1px solid var(--border-dark); border-radius:var(--radius-sm); color:var(--white-main); font-size:0.8rem; outline:none; cursor:pointer;">
                         <option value="5" selected>Nível 5 (Prioridade)</option>
                         <option value="4">Nível 4</option>
                         <option value="3">Nível 3</option>
@@ -2746,7 +2796,13 @@ window.addToCart = function(itemId, category) {
         if (existing) {
             existing.qty += 1;
         } else {
-            cart.push({ ...item, cartItemId: cartItemId, name: cartItemName, selectedLevel: selectedLevel, qty: 1, type: actualCategory });
+            const cartItem = { ...item, cartItemId: cartItemId, name: cartItemName, selectedLevel: selectedLevel, qty: 1, type: actualCategory };
+            if (itemId === 'suspension') {
+                const details = window.getSuspensionDetailsForLevel(selectedLevel);
+                cartItem.sellPrice = details.price;
+                cartItem.ingredients = details.ingredients;
+            }
+            cart.push(cartItem);
         }
         updateCart();
 
@@ -2792,6 +2848,11 @@ window.changeCartSuspensionLevel = function(oldCartItemId, newLevel) {
     if (item) {
         const newLevelInt = parseInt(newLevel);
         const newCartItemId = `suspension_lvl_${newLevelInt}`;
+        
+        // Scale price and ingredients for the new level
+        const details = window.getSuspensionDetailsForLevel(newLevelInt);
+        item.sellPrice = details.price;
+        item.ingredients = details.ingredients;
         
         // Check if there is already a suspension of this level in the cart
         const existing = cart.find(c => c.cartItemId === newCartItemId && c.cartItemId !== oldCartItemId);
