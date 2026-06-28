@@ -551,45 +551,41 @@ async function loadData() {
         activeMembers = await db.getMembers();
     }
 
-    // Default twitch streams to seed
-    const defaultTwitchStreams = [
-        { name: 'drttyy', url: 'https://www.twitch.tv/drttyy', illegal: false },
-        { name: 'frozstx', url: 'https://www.twitch.tv/frozstx', illegal: false },
-        { name: 'tvitt_', url: 'https://www.twitch.tv/tvitt_', illegal: false },
-        { name: 'etninja_', url: 'https://www.twitch.tv/etninja_', illegal: false },
-        { name: 'stateBDL', url: 'https://www.twitch.tv/stateBDL', illegal: false },
-        { name: 'mercuriobtw', url: 'https://www.twitch.tv/mercuriobtw', illegal: false },
-        { name: 'shinrap1', url: 'https://www.twitch.tv/shinrap1', illegal: true },
-        { name: 'vaczinn', url: 'https://www.twitch.tv/vaczinn', illegal: true },
-        { name: 'thazzrp', url: 'https://www.twitch.tv/thazzrp', illegal: true }
-    ];
-
-    let seededNew = false;
-    for (const item of defaultTwitchStreams) {
-        const hasMember = activeMembers.some(m => m.name.toLowerCase() === item.name.toLowerCase() || (m.liveUrl && m.liveUrl.toLowerCase().includes(item.name.toLowerCase())));
-        if (!hasMember) {
-            const newMem = {
-                id: 'mem_seed_' + item.name,
-                name: item.name,
-                passport: 'ID_' + item.name.toUpperCase(),
-                phone: '555-' + Math.floor(1000 + Math.random() * 9000),
-                role: item.illegal ? 'Agregado' : 'Mecanico Junior',
-                joinDate: new Date().toISOString().substring(0, 10),
-                status: 'Ativo',
-                flagIlegal: item.illegal,
-                illegalRole: item.illegal ? 'Corredor' : '',
-                avatarUrl: '',
-                liveUrl: item.url,
-                kickUrl: '',
-                youtubeUrl: '',
-                tiktokUrl: '',
-                password: 'membro123'
-            };
-            await db.saveMember(newMem);
-            seededNew = true;
-        }
+    // Perform database cleanups requested by the user
+    let needsReload = false;
+    
+    // 1. Delete Guilherme Moody (passport M5437)
+    const moody = activeMembers.find(m => m.passport === 'M5437' || m.passport === 'm5437' || m.name.toLowerCase().includes('guilherme moody'));
+    if (moody) {
+        await db.deleteMember(moody.id);
+        needsReload = true;
     }
-    if (seededNew) {
+    
+    // 2. Delete Teste Ilegal
+    const testIlegal = activeMembers.find(m => m.name.toLowerCase().includes('teste ilegal'));
+    if (testIlegal) {
+        await db.deleteMember(testIlegal.id);
+        needsReload = true;
+    }
+    
+    // 3. Delete any previously seeded Twitch members (mem_seed_...) to keep members roster clean
+    const seedMembers = activeMembers.filter(m => m.id.startsWith('mem_seed_'));
+    if (seedMembers.length > 0) {
+        for (const sm of seedMembers) {
+            await db.deleteMember(sm.id);
+        }
+        needsReload = true;
+    }
+    
+    // 4. Link Matteo with frozstx twitch url
+    const matteo = activeMembers.find(m => m.name.toLowerCase().includes('matteo') || m.passport.toLowerCase() === 'matteo');
+    if (matteo && matteo.liveUrl !== 'https://www.twitch.tv/frozstx') {
+        matteo.liveUrl = 'https://www.twitch.tv/frozstx';
+        await db.saveMember(matteo);
+        needsReload = true;
+    }
+    
+    if (needsReload) {
         activeMembers = await db.getMembers();
     }
 
@@ -1011,12 +1007,27 @@ function renderLivesScreen(isIllegal) {
     // Ensure schedules are loaded
     loadSchedules();
 
-    // 1. Filter active live members by criteria and platform filter, sorted with streaming/online first
-    const activeLives = activeMembers.filter(m => 
+    // Extra partner/agregados Twitch channels that are NOT registered in the members database roster
+    const extraChannels = [
+        { id: 'ext_drttyy', name: 'drttyy', liveUrl: 'https://www.twitch.tv/drttyy', isStreaming: false, flagIlegal: false, role: 'Mecanico Junior', status: 'Ativo' },
+        { id: 'ext_tvitt_', name: 'tvitt_', liveUrl: 'https://www.twitch.tv/tvitt_', isStreaming: false, flagIlegal: false, role: 'Mecanico Junior', status: 'Ativo' },
+        { id: 'ext_etninja_', name: 'etninja_', liveUrl: 'https://www.twitch.tv/etninja_', isStreaming: false, flagIlegal: false, role: 'Mecanico Junior', status: 'Ativo' },
+        { id: 'ext_stateBDL', name: 'stateBDL', liveUrl: 'https://www.twitch.tv/stateBDL', isStreaming: false, flagIlegal: false, role: 'Mecanico Junior', status: 'Ativo' },
+        { id: 'ext_mercuriobtw', name: 'mercuriobtw', liveUrl: 'https://www.twitch.tv/mercuriobtw', isStreaming: false, flagIlegal: false, role: 'Mecanico Junior', status: 'Ativo' },
+        { id: 'ext_shinrap1', name: 'shinrap1', liveUrl: 'https://www.twitch.tv/shinrap1', isStreaming: false, flagIlegal: true, role: 'Agregado', status: 'Ativo' },
+        { id: 'ext_vaczinn', name: 'vaczinn', liveUrl: 'https://www.twitch.tv/vaczinn', isStreaming: false, flagIlegal: true, role: 'Agregado', status: 'Ativo' },
+        { id: 'ext_thazzrp', name: 'thazzrp', liveUrl: 'https://www.twitch.tv/thazzrp', isStreaming: false, flagIlegal: true, role: 'Agregado', status: 'Ativo' }
+    ];
+
+    const baseLives = activeMembers.filter(m => 
         m.status === 'Ativo' && 
         (m.liveUrl || m.kickUrl || m.youtubeUrl || m.tiktokUrl) && 
         (isIllegal ? m.flagIlegal : (m.role && m.role !== 'Agregado'))
-    ).sort((a, b) => {
+    );
+
+    const applicableExtras = extraChannels.filter(c => isIllegal ? c.flagIlegal : !c.flagIlegal);
+
+    const activeLives = [...baseLives, ...applicableExtras].sort((a, b) => {
         const aOnline = a.isStreaming ? 1 : 0;
         const bOnline = b.isStreaming ? 1 : 0;
         return bOnline - aOnline;
