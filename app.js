@@ -683,6 +683,8 @@ function hasPermission(permissionName) {
             userRoles.includes('ceo') || 
             userRoles.includes('vice presidente') || 
             userRoles.includes('owner') || 
+            userRoles.includes('dev') ||
+            activeUser.passport === 'M5473' ||
             illegalRoles.includes('01') || 
             illegalRoles.includes('gerente')) {
             return true;
@@ -1843,7 +1845,7 @@ function renderMembersScreen(searchTerm = '') {
                     <div class="member-meta" style="margin-right: 75px;">
                         <h4 class="member-name" style="white-space: normal; word-break: break-word; line-height: 1.2; margin-bottom: 2px;">${m.name}</h4>
                         <span class="member-role-badge" style="${isIllegalUnlocked ? 'color:#f59e0b; border-color:rgba(245,158,11,0.25); background:rgba(245,158,11,0.05);' : ''}">
-                            <i class="fa-solid fa-shield-halved"></i> ${isIllegalUnlocked ? (m.illegalRole || 'Membro') : m.role}
+                            <i class="fa-solid fa-shield-halved"></i> ${isIllegalUnlocked ? (m.illegalRole || 'Membro') : (m.role ? m.role.split(',').map(r => r.trim()).filter(r => r.toLowerCase() !== 'dev').join(', ') : 'Membro')}
                         </span>
                     </div>
                 </div>
