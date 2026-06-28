@@ -551,6 +551,48 @@ async function loadData() {
         activeMembers = await db.getMembers();
     }
 
+    // Default twitch streams to seed
+    const defaultTwitchStreams = [
+        { name: 'drttyy', url: 'https://www.twitch.tv/drttyy', illegal: false },
+        { name: 'frozstx', url: 'https://www.twitch.tv/frozstx', illegal: false },
+        { name: 'tvitt_', url: 'https://www.twitch.tv/tvitt_', illegal: false },
+        { name: 'etninja_', url: 'https://www.twitch.tv/etninja_', illegal: false },
+        { name: 'stateBDL', url: 'https://www.twitch.tv/stateBDL', illegal: false },
+        { name: 'mercuriobtw', url: 'https://www.twitch.tv/mercuriobtw', illegal: false },
+        { name: 'shinrap1', url: 'https://www.twitch.tv/shinrap1', illegal: true },
+        { name: 'vaczinn', url: 'https://www.twitch.tv/vaczinn', illegal: true },
+        { name: 'thazzrp', url: 'https://www.twitch.tv/thazzrp', illegal: true }
+    ];
+
+    let seededNew = false;
+    for (const item of defaultTwitchStreams) {
+        const hasMember = activeMembers.some(m => m.name.toLowerCase() === item.name.toLowerCase() || (m.liveUrl && m.liveUrl.toLowerCase().includes(item.name.toLowerCase())));
+        if (!hasMember) {
+            const newMem = {
+                id: 'mem_seed_' + item.name,
+                name: item.name,
+                passport: 'ID_' + item.name.toUpperCase(),
+                phone: '555-' + Math.floor(1000 + Math.random() * 9000),
+                role: item.illegal ? 'Agregado' : 'Mecanico Junior',
+                joinDate: new Date().toISOString().substring(0, 10),
+                status: 'Ativo',
+                flagIlegal: item.illegal,
+                illegalRole: item.illegal ? 'Corredor' : '',
+                avatarUrl: '',
+                liveUrl: item.url,
+                kickUrl: '',
+                youtubeUrl: '',
+                tiktokUrl: '',
+                password: 'membro123'
+            };
+            await db.saveMember(newMem);
+            seededNew = true;
+        }
+    }
+    if (seededNew) {
+        activeMembers = await db.getMembers();
+    }
+
     updateCart();
     renderItems();
 }
@@ -969,13 +1011,16 @@ function renderLivesScreen(isIllegal) {
     // Ensure schedules are loaded
     loadSchedules();
 
-    // 1. Filter active live members by criteria and platform filter
+    // 1. Filter active live members by criteria and platform filter, sorted with streaming/online first
     const activeLives = activeMembers.filter(m => 
         m.status === 'Ativo' && 
-        m.isStreaming && 
         (m.liveUrl || m.kickUrl || m.youtubeUrl || m.tiktokUrl) && 
         (isIllegal ? m.flagIlegal : (m.role && m.role !== 'Agregado'))
-    );
+    ).sort((a, b) => {
+        const aOnline = a.isStreaming ? 1 : 0;
+        const bOnline = b.isStreaming ? 1 : 0;
+        return bOnline - aOnline;
+    });
 
     const filteredLives = activeLives.filter(m => {
         if (currentLivePlatformFilter === 'all') return true;
@@ -3419,9 +3464,9 @@ function updateAuthUI() {
             if (normalNav) normalNav.style.display = 'none';
             if (illegalNav) illegalNav.style.display = 'flex';
 
-            const illegalAllowed = ['illegal-recipes', 'illegal-actions', 'illegal-hierarchy', 'illegal-boosting', 'illegal-cars', 'illegal-mural', 'illegal-lives', 'members'];
+            const illegalAllowed = ['illegal-mural', 'illegal-recipes', 'illegal-actions', 'illegal-boosting', 'illegal-lives', 'members'];
             if (!illegalAllowed.includes(currentCategory)) {
-                currentCategory = 'illegal-recipes';
+                currentCategory = 'illegal-mural';
             }
         } else if (isLoggedIn) {
             if (isIllegalUnlocked) {
@@ -3909,8 +3954,8 @@ function activateIllegalArea() {
     document.getElementById('normalNav').style.display = 'none';
     document.getElementById('illegalNav').style.display = 'flex';
 
-    // Direct navigation to illegal recipes category tab
-    switchCategory('illegal-recipes');
+    // Direct navigation to illegal mural category tab
+    switchCategory('illegal-mural');
     updateAuthUI();
 }
 
@@ -3926,7 +3971,7 @@ if (btnToggleIllegal) {
             const brandLogo = document.querySelector('.brand-logo');
             const brandTagline = document.querySelector('.brand-tagline');
             if (brandLogo) {
-                brandLogo.innerHTML = '<span class="brand-re">RE:</span><span class="brand-colon">:</span><span class="brand-motion">Motion</span>';
+                brandLogo.innerHTML = '<span class="brand-re">RE</span><span class="brand-colon">:</span><span class="brand-motion">Motion</span>';
             }
             if (brandTagline) {
                 brandTagline.textContent = 'Performance Shop';
@@ -3956,9 +4001,9 @@ function switchCategory(cat) {
                           currentLoggedInMember.flagIlegal;
                           
     if (isIllegalOnly) {
-        const illegalAllowed = ['illegal-recipes', 'illegal-actions', 'illegal-hierarchy', 'illegal-boosting', 'illegal-cars', 'illegal-mural', 'illegal-lives', 'members'];
+        const illegalAllowed = ['illegal-mural', 'illegal-recipes', 'illegal-actions', 'illegal-boosting', 'illegal-lives', 'members'];
         if (!illegalAllowed.includes(cat)) {
-            cat = 'illegal-recipes';
+            cat = 'illegal-mural';
         }
     }
 
