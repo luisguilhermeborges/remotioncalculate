@@ -3351,6 +3351,8 @@ function updateAuthUI() {
             editCurrentBtn.style.display = 'flex';
             editCurrentBtn.innerHTML = `<i class="fa-solid fa-pen"></i> Alterar Veículo`;
         }
+    } catch (e) {
+        console.error("Error in updateAuthUI core:", e);
     }
     
     if (btnLoginToggle) {
