@@ -48,7 +48,7 @@
                     <button class="category-btn" id="btn-members" data-category="members">
                         <i class="fa-solid fa-users"></i> Membros
                     </button>
-                    <button class="category-btn" id="btn-hierarchy" data-category="hierarchy">
+                    <button class="category-btn" id="btn-hierarchy" data-category="members">
                         <i class="fa-solid fa-sitemap"></i> Hierarquia
                     </button>
                     <button class="category-btn" id="btn-vault" data-category="vault">
@@ -68,7 +68,7 @@
                     <button class="category-btn" id="btn-illegal-actions" data-category="illegal-actions">
                         <i class="fa-solid fa-gun"></i> Ações
                     </button>
-                    <button class="category-btn" id="btn-illegal-hierarchy" data-category="illegal-hierarchy">
+                    <button class="category-btn" id="btn-illegal-hierarchy" data-category="members">
                         <i class="fa-solid fa-sitemap"></i> Hierarquia
                     </button>
                     <button class="category-btn" id="btn-illegal-boosting" data-category="illegal-boosting">
@@ -161,42 +161,47 @@
 
         <!-- ═══ CART PANEL ═══ -->
         <aside class="cart-panel">
-            <header class="cart-header">
-                <h3>
-                    <i class="fa-solid fa-cart-shopping"></i>
-                    Carrinho
-                    <span class="cart-count-badge" id="cartBadge">0</span>
-                </h3>
-                <button id="clearCartBtn" class="action-btn danger-btn">
-                    <i class="fa-solid fa-trash"></i> Limpar
-                </button>
-            </header>
+            <div id="cartContentWrapper" style="display: flex; flex-direction: column; height: 100%;">
+                <header class="cart-header">
+                    <h3>
+                        <i class="fa-solid fa-cart-shopping"></i>
+                        Carrinho
+                        <span class="cart-count-badge" id="cartBadge">0</span>
+                    </h3>
+                    <button id="clearCartBtn" class="action-btn danger-btn">
+                        <i class="fa-solid fa-trash"></i> Limpar
+                    </button>
+                </header>
 
-            <div class="cart-items" id="cartItems">
-                <div class="empty-cart-msg">
-                    <i class="fa-solid fa-cart-shopping"></i>
-                    <p>Nenhum item selecionado</p>
+                <div class="cart-items" id="cartItems">
+                    <div class="empty-cart-msg">
+                        <i class="fa-solid fa-cart-shopping"></i>
+                        <p>Nenhum item selecionado</p>
+                    </div>
+                </div>
+
+                <div class="cart-summary">
+                    <div class="summary-section">
+                        <h4>Materiais Necessários</h4>
+                        <div class="materials-list" id="materialsList">
+                            <span class="text-muted">Selecione itens para ver</span>
+                        </div>
+                    </div>
+
+                    <div class="total-section">
+                        <div class="total-row">
+                            <span>Custo de Materiais</span>
+                            <span id="costTotal">$0</span>
+                        </div>
+                        <div class="total-row highlight">
+                            <span>Lucro Bruto</span>
+                            <span id="sellTotal">$0</span>
+                        </div>
+                    </div>
                 </div>
             </div>
-
-            <div class="cart-summary">
-                <div class="summary-section">
-                    <h4>Materiais Necessários</h4>
-                    <div class="materials-list" id="materialsList">
-                        <span class="text-muted">Selecione itens para ver</span>
-                    </div>
-                </div>
-
-                <div class="total-section">
-                    <div class="total-row">
-                        <span>Custo de Materiais</span>
-                        <span id="costTotal">$0</span>
-                    </div>
-                    <div class="total-row highlight">
-                        <span>Lucro Bruto</span>
-                        <span id="sellTotal">$0</span>
-                    </div>
-                </div>
+            <div id="sidebarHierarchyWrapper" style="display: none; flex-direction: column; height: 100%; overflow-y: auto; padding: 22px; gap: 20px;">
+                <!-- Hierarchy tree will be injected here dynamically -->
             </div>
         </aside>
 

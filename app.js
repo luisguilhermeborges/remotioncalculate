@@ -2857,10 +2857,104 @@ window.updateSuspensionCardUI = function(selectEl) {
     }
 };
 
+window.renderSidebarHierarchy = function() {
+    const sidebarHierarchyWrapper = document.getElementById('sidebarHierarchyWrapper');
+    if (!sidebarHierarchyWrapper) return;
+    
+    const isIllegal = isIllegalUnlocked;
+    let html = `
+        <h3 style="font-family:'Rajdhani', sans-serif; font-size:1.25rem; font-weight:700; text-transform:uppercase; letter-spacing:1px; color:var(--white-main); margin-bottom:15px; border-bottom:1px solid var(--border-dark); padding-bottom:10px; display:flex; align-items:center; gap:8px;">
+            <i class="fa-solid fa-sitemap" style="color:${isIllegal ? '#f59e0b' : 'var(--red-primary)'};"></i> Hierarquia ${isIllegal ? 'Ilícita' : 'Mecânica'}
+        </h3>
+    `;
+    
+    const activeLives = activeMembers.filter(m => m.status === 'Ativo');
+    
+    if (isIllegal) {
+        const illegalMembers = activeLives.filter(m => m.flagIlegal);
+        const illegalRoles = ['01', 'Gerente', 'Corredor', 'Membro', 'Probatorio'];
+        const icons = {
+            '01': 'fa-solid fa-crown',
+            'Gerente': 'fa-solid fa-crown',
+            'Corredor': 'fa-solid fa-gauge-high',
+            'Membro': 'fa-solid fa-user-group',
+            'Probatorio': 'fa-solid fa-user-clock'
+        };
+        
+        illegalRoles.forEach(roleName => {
+            const membersOfLevel = illegalMembers.filter(m => getMemberHighestIllegalRole(m).toLowerCase() === roleName.toLowerCase());
+            html += `
+                <div style="margin-bottom: 15px;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; font-weight:700; font-size:0.82rem; color:#f59e0b; text-transform:uppercase; border-bottom:1px solid rgba(245,158,11,0.15); padding-bottom:4px; margin-bottom:6px;">
+                        <span><i class="${icons[roleName] || 'fa-solid fa-user'}"></i> ${roleName}</span>
+                        <span style="font-size:0.75rem; color:var(--white-muted);">(${membersOfLevel.length})</span>
+                    </div>
+                    <div style="display:flex; flex-direction:column; gap:4px; padding-left:10px;">
+                        ${membersOfLevel.map(m => `
+                            <div style="font-size:0.8rem; color:var(--white-main); display:flex; align-items:center; gap:6px;">
+                                <i class="fa-solid fa-caret-right" style="font-size:0.6rem; color:#f59e0b;"></i>
+                                <span>${m.name}</span>
+                                <span style="font-size:0.7rem; color:var(--white-muted);">(${m.passport})</span>
+                            </div>
+                        `).join('') || '<span style="font-size:0.75rem; color:var(--white-dim); font-style:italic;">Nenhum membro</span>'}
+                    </div>
+                </div>
+            `;
+        });
+    } else {
+        const legalRolesOrder = ['ceo', 'vice presidente', 'gerente', 'mecanico senior', 'mecanico pleno', 'mecanico junior', 'estagiario'];
+        const icons = {
+            'ceo': 'fa-solid fa-crown',
+            'vice presidente': 'fa-solid fa-crown',
+            'gerente': 'fa-solid fa-user-tie',
+            'mecanico senior': 'fa-solid fa-shield-halved',
+            'mecanico pleno': 'fa-solid fa-wrench',
+            'mecanico junior': 'fa-solid fa-screwdriver',
+            'estagiario': 'fa-solid fa-user-clock'
+        };
+        
+        legalRolesOrder.forEach(roleName => {
+            const membersOfLevel = activeLives.filter(m => m.role && m.role.split(',').map(r => r.trim().toLowerCase()).includes(roleName));
+            html += `
+                <div style="margin-bottom: 15px;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; font-weight:700; font-size:0.82rem; color:var(--red-primary); text-transform:uppercase; border-bottom:1px solid var(--border-dark); padding-bottom:4px; margin-bottom:6px;">
+                        <span><i class="${icons[roleName] || 'fa-solid fa-user'}"></i> ${roleName}</span>
+                        <span style="font-size:0.75rem; color:var(--white-muted);">(${membersOfLevel.length})</span>
+                    </div>
+                    <div style="display:flex; flex-direction:column; gap:4px; padding-left:10px;">
+                        ${membersOfLevel.map(m => `
+                            <div style="font-size:0.8rem; color:var(--white-main); display:flex; align-items:center; gap:6px;">
+                                <i class="fa-solid fa-caret-right" style="font-size:0.6rem; color:var(--red-primary);"></i>
+                                <span>${m.name}</span>
+                                <span style="font-size:0.7rem; color:var(--white-muted);">(${m.passport})</span>
+                            </div>
+                        `).join('') || '<span style="font-size:0.75rem; color:var(--white-dim); font-style:italic;">Nenhum membro</span>'}
+                    </div>
+                </div>
+            `;
+        });
+    }
+    
+    sidebarHierarchyWrapper.innerHTML = html;
+};
+
 // ─── RENDER STANDARD LIST OF ITEMS ────────────────────────────────────────
 function renderItems(searchTerm = '') {
     const stageButtonsContainer = document.getElementById('stageButtonsContainer');
     const searchBar = document.querySelector('.search-bar');
+    const cartContentWrapper = document.getElementById('cartContentWrapper');
+    const sidebarHierarchyWrapper = document.getElementById('sidebarHierarchyWrapper');
+
+    if (cartContentWrapper && sidebarHierarchyWrapper) {
+        if (currentCategory === 'members') {
+            cartContentWrapper.style.display = 'none';
+            sidebarHierarchyWrapper.style.display = 'flex';
+            window.renderSidebarHierarchy();
+        } else {
+            cartContentWrapper.style.display = 'flex';
+            sidebarHierarchyWrapper.style.display = 'none';
+        }
+    }
 
     itemsGrid.style.gridTemplateColumns = '';
 
@@ -3351,9 +3445,6 @@ function updateAuthUI() {
             editCurrentBtn.style.display = 'flex';
             editCurrentBtn.innerHTML = `<i class="fa-solid fa-pen"></i> Alterar Veículo`;
         }
-    } catch (e) {
-        console.error("Error in updateAuthUI core:", e);
-    }
     
     if (btnLoginToggle) {
         if (isLoggedIn) {
@@ -3400,7 +3491,10 @@ function updateAuthUI() {
         actionRow.style.display = hasVisibleButtons ? 'flex' : 'none';
     }
 
-    renderItems();
+        renderItems();
+    } catch (e) {
+        console.error("Error in updateAuthUI:", e);
+    }
 }
 
 // ─── MODALS OPEN/CLOSE CONTROL ────────────────────────────────────────────
