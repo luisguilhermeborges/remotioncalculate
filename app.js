@@ -616,7 +616,7 @@ async function loadData() {
             flagIlegal: false,
             illegalRole: '',
             avatarUrl: '',
-            liveUrl: 'https://www.twitch.tv/tvitt_',
+            liveUrl: 'https://www.twitch.tv/luigb',
             kickUrl: '',
             youtubeUrl: '',
             tiktokUrl: '',
@@ -634,8 +634,8 @@ async function loadData() {
             moodyReal.status = 'Ativo';
             changed = true;
         }
-        if (!moodyReal.liveUrl) {
-            moodyReal.liveUrl = 'https://www.twitch.tv/tvitt_';
+        if (moodyReal.liveUrl !== 'https://www.twitch.tv/luigb') {
+            moodyReal.liveUrl = 'https://www.twitch.tv/luigb';
             changed = true;
         }
         if (changed) {
