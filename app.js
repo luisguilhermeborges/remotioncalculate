@@ -490,6 +490,24 @@ async function loadData() {
 
         activeMural = await db.getMural();
         activeMembers = await db.getMembers();
+        
+        // Purge unwanted/stuck members from local storage cache immediately
+        const storageObj = window.safeStorage || window.localStorage;
+        let localMems = JSON.parse(storageObj.getItem('members_local') || '[]');
+        const originalLength = localMems.length;
+        localMems = localMems.filter(m => 
+            m.passport !== 'M5437' && 
+            m.passport !== 'm5437' && 
+            m.passport !== '456' &&
+            m.id !== 'mem_ryan_001' &&
+            !m.id.startsWith('mem_seed_') &&
+            !m.name.toLowerCase().includes('guilherme moody') && 
+            !m.name.toLowerCase().includes('teste ilegal')
+        );
+        if (localMems.length !== originalLength) {
+            storageObj.setItem('members_local', JSON.stringify(localMems));
+        }
+
         activeRoles = await db.getRoles();
         activeVaultLogs = await db.getVaultLogs();
         activeIllegalRecords = await db.getIllegalRecords();

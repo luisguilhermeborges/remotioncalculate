@@ -610,8 +610,9 @@ const db = {
     deleteMember: async (memberId) => {
         if (supabaseInstance) {
             const { error } = await supabaseInstance.from('members').delete().eq('id', memberId);
-            if (!error) return true;
-            console.error("Supabase error deleting member:", error);
+            if (error) {
+                console.error("Supabase error deleting member:", error);
+            }
         }
         let locals = JSON.parse(safeStorage.getItem('members_local') || '[]');
         locals = locals.filter(m => m.id !== memberId);
